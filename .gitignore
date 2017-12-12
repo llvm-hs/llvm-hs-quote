@@ -1,0 +1,13 @@
+*.sw[ponm]
+dist
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+.virthualenv
+.cabal-sandbox
+cabal.sandbox.config
+*~
+*#*#
+.stack-work

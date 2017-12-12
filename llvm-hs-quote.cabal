@@ -1,0 +1,55 @@
+name:                llvm-hs-quote
+version:             0.1.0.0
+synopsis:            QuasiQuoting llvm code for llvm-hs
+homepage:            https://github.com/llvm-hs/llvm-hs-quote
+description:
+  This package provides a QuasiQuotation for llvm-hs.
+
+license:             BSD3
+license-file:        LICENSE
+author:              Timo von Holtz <tvh@tvholtz.de>
+maintainer:          Timo von Holtz <tvh@tvholtz.de>
+copyright:           Timo von Holtz 2014
+category:            Compilers/Interpreters, Code Generation
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+source-repository head
+  type: git
+  location: git://github.com/llvm-hs/llvm-hs-quote.git
+
+library
+  exposed-modules:
+    LLVM.Quote.LLVM
+  other-modules:
+    LLVM.Quote.AST,
+    LLVM.Quote.Base
+    LLVM.Quote.Parser.Lexer,
+    LLVM.Quote.Parser.Tokens,
+    LLVM.Quote.Parser.Monad,
+    LLVM.Quote.Parser.Parser
+    --LLVM.Quote.Parser,
+    --LLVM.Quote.SSA
+  other-extensions:    CPP
+  ghc-options:     -Wall
+  build-depends:
+    base >=4.7 && <5.0,
+    array -any,
+    containers -any,
+    mtl -any,
+    bytestring,
+    symbol,
+    srcloc,
+    mainland-pretty <= 0.3,
+    --llvm-general-pure >= 3.4.3.0 && < 3.5,
+    llvm-hs-pure,
+    syb,
+    template-haskell >= 2.7,
+    haskell-src-meta,
+    th-lift,
+    th-lift-instances,
+    split
+  build-tools:         alex, happy
+  hs-source-dirs: src
+  default-language:    Haskell2010
