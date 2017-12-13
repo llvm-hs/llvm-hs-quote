@@ -543,7 +543,7 @@ data NamedInstruction
 
 -- | A 'MetadataNodeID' is a number for identifying a metadata node.
 -- Note this is different from "named metadata", which are represented with
--- 'LLVM.General.AST.NamedMetadataDefinition'.
+-- 'LLVM.AST.NamedMetadataDefinition'.
 newtype MetadataNodeID = MetadataNodeID Word
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
@@ -553,18 +553,18 @@ data MetadataNode
   | MetadataNodeReference MetadataNodeID
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
--- | An 'Operand' is roughly that which is an argument to an 'LLVM.General.AST.Instruction.Instruction'
+-- | An 'Operand' is roughly that which is an argument to an 'LLVM.AST.Instruction.Instruction'
 data Operand
   -- | %foo
   = LocalReference Type Name
-  -- | 'Constant's include 'LLVM.General.AST.Constant.GlobalReference', for \@foo
+  -- | 'Constant's include 'LLVM.AST.Constant.GlobalReference', for \@foo
   | ConstantOperand Constant
   | MetadataStringOperand String
   | MetadataNodeOperand MetadataNode
   | AntiOperand String
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
--- | The 'LLVM.General.AST.Instruction.Call' instruction is special: the callee can be inline assembly
+-- | The 'LLVM.AST.Instruction.Call' instruction is special: the callee can be inline assembly
 type CallableOperand  = Either InlineAssembly Operand
 
 {- |
@@ -609,7 +609,7 @@ This libraries handling of 'UnName's during translation of the AST down into C++
 forgiving than the LLVM assembly parser: it does not require that unnamed values be numbered sequentially;
 however, the numbers of 'UnName's passed into C++ cannot be preserved in the C++ objects. If the C++ IR is
 printed as assembly or translated into a Haskell AST, unnamed nodes will be renumbered sequentially. Thus
-unnamed node numbers should be thought of as having any scope limited to the 'LLVM.General.AST.Module' in
+unnamed node numbers should be thought of as having any scope limited to the 'LLVM.AST.Module' in
 which they are used.
 -}
 data Name
@@ -645,8 +645,8 @@ data Type
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 -- | <http://llvm.org/docs/LangRef.html#inline-assembler-expressions>
--- to be used through 'LLVM.General.AST.Operand.CallableOperand' with a
--- 'LLVM.General.AST.Instruction.Call' instruction
+-- to be used through 'LLVM.AST.Operand.CallableOperand' with a
+-- 'LLVM.AST.Instruction.Call' instruction
 data InlineAssembly
   = InlineAssembly {
       __type' :: Type,

@@ -29,8 +29,8 @@ library
     LLVM.Quote.Parser.Tokens,
     LLVM.Quote.Parser.Monad,
     LLVM.Quote.Parser.Parser
-    --LLVM.Quote.Parser,
-    --LLVM.Quote.SSA
+    LLVM.Quote.Parser,
+    LLVM.Quote.SSA
   other-extensions:    CPP
   ghc-options:     -Wall
   build-depends:
@@ -42,7 +42,6 @@ library
     symbol,
     srcloc,
     mainland-pretty <= 0.3,
-    --llvm-general-pure >= 3.4.3.0 && < 3.5,
     llvm-hs-pure,
     syb,
     template-haskell >= 2.7,

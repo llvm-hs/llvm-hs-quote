@@ -23,25 +23,25 @@ For each type `a`, there's also a corresponding quasiquoter or antiquoter for
 `CodeGen Definition` is `lldefM`. Its antiquoter is `$def:`; the corresponding
 antiquoter for `CodeGen Definition` is `$defM:`.
 
-AST Type                                     | Quasiquoter | Antiquoter
--------------------------------------------- | ----------- | ----------
-`LLVM.General.AST.Module`                    | `llmod`     |
-`LLVM.General.AST.Definition`                | `lldef`     | `$def:`
-`[LLVM.General.AST.Definition]`              |             | `$defs:`
-`LLVM.General.AST.Global`                    | `llg`       |
-`LLVM.General.AST.Instruction.Instruction`   | `lli`       | `$instr:`
-`[LLVM.General.AST.Instruction.Instruction]` |             | `$instrs:`
-`LLVM.General.AST.DataLayout.DataLayout`     |             | `$dl:`
-`LLVM.General.Quote.AST.TargetTriple`        |             | `$tt:`
-`LLVM.General.AST.BasicBlock`                |             | `$bb:`
-`[LLVM.General.AST.BasicBlock]`              |             | `$bbs:`
-`LLVM.General.AST.Type.Type`                 |             | `$type:`
-`LLVM.General.AST.Operand.Operand`           |             | `$opr:`
-`LLVM.General.AST.Constant.Constant`         |             | `$const:`
-`LLVM.General.AST.Name.Name` (local)         |             | `$id:`
-`LLVM.General.AST.Name.Name` (global)        |             | `$gid:`
-`LLVM.General.AST.Parameter`                 |             | `$param:`
-`[LLVM.General.AST.Parameter]`               |             | `$params:`
+AST Type                             | Quasiquoter | Antiquoter
+-------------------------------------| ----------- | ----------
+`LLVM.AST.Module`                    | `llmod`     |
+`LLVM.AST.Definition`                | `lldef`     | `$def:`
+`[LLVM.AST.Definition]`              |             | `$defs:`
+`LLVM.AST.Global`                    | `llg`       |
+`LLVM.AST.Instruction.Instruction`   | `lli`       | `$instr:`
+`[LLVM.AST.Instruction.Instruction]` |             | `$instrs:`
+`LLVM.AST.DataLayout.DataLayout`     |             | `$dl:`
+`LLVM.Quote.AST.TargetTriple`        |             | `$tt:`
+`LLVM.AST.BasicBlock`                |             | `$bb:`
+`[LLVM.AST.BasicBlock]`              |             | `$bbs:`
+`LLVM.AST.Type.Type`                 |             | `$type:`
+`LLVM.AST.Operand.Operand`           |             | `$opr:`
+`LLVM.AST.Constant.Constant`         |             | `$const:`
+`LLVM.AST.Name.Name` (local)         |             | `$id:`
+`LLVM.AST.Name.Name` (global)        |             | `$gid:`
+`LLVM.AST.Parameter`                 |             | `$param:`
+`[LLVM.AST.Parameter]`               |             | `$params:`
 
 In addition to this, it supports using mutable variables and control structures instead of pure SSA form.
 This is translated automatically into SSA through appropriate renaming.
