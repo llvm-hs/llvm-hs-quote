@@ -31,7 +31,6 @@ import qualified LLVM.AST.Instruction as A ( Atomicity(..), MemoryOrdering(..) )
 import qualified LLVM.AST.IntegerPredicate as AI
 import qualified LLVM.AST.FloatingPointPredicate as AF
 import qualified LLVM.AST.RMWOperation as AR
-import qualified LLVM.AST.Type as A ( FloatingPointFormat(..) )
 import qualified LLVM.AST.DataLayout as A
   ( Endianness(..), AlignmentInfo(..), AlignType(..) )
 }

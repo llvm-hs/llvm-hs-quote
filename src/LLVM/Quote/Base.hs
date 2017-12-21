@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
@@ -24,9 +25,11 @@ import Control.Monad.Identity
 import qualified Data.ByteString.Char8 as B
 import Control.Monad.State.Strict
 import Control.Monad.Writer.Strict
+import Data.ByteString.Short (ShortByteString, fromShort)
 import Data.Word
 import Data.Loc
 import Data.Data (Data(..))
+import Data.String (fromString)
 import Language.Haskell.Meta (parseExp)
 import Language.Haskell.TH
 import Language.Haskell.TH.Lib
@@ -100,7 +103,7 @@ class ToName a where
 instance ToName L.Name where
   toName = id
 instance ToName String where
-  toName = L.Name
+  toName = L.Name . fromString
 instance ToName Word where
   toName = L.UnName
 
@@ -111,8 +114,12 @@ instance ToTargetTriple String where
 instance ToTargetTriple (Maybe String) where
   toTargetTriple = id
 
-antiVarE :: String -> ExpQ
-antiVarE s = [|$(either fail return $ parseExp s)|]
+-- TODO handle non ascii bytestrings
+toString :: ShortByteString -> String
+toString = B.unpack . fromShort
+
+antiVarE :: ShortByteString -> ExpQ
+antiVarE s = [|$(either fail return $ parseExp (toString s))|]
 
 type Conversion a b = forall m.(CodeGenMonad m) => a -> TExpQ (m b)
 type Conversion' m a b = (CodeGenMonad m) => a -> TExpQ (m b)
@@ -124,10 +131,6 @@ class QQExp a b where
 
 instance (Lift a) => QQExp a a where
   qqExpM x = [||pure x||]
-
-instance QQExp [A.MetadataNodeID] [L.MetadataNodeID] where
-  qqExpM (x:xs) = [||(:) <$> $$(qqExpM x) <*> $$(qqExpM xs)||]
-  qqExpM []     = [||pure []||]
 
 instance QQExp A.InstructionMetadata L.InstructionMetadata where
   qqExpM (x:xs) = [||(:) <$> $$(qqExpM x) <*> $$(qqExpM xs)||]
@@ -162,6 +165,10 @@ instance QQExp [Maybe A.Operand] [Maybe L.Operand] where
   qqExpM (x:xs) = [||(:) <$> $$(qqExpM x) <*> $$(qqExpM xs)||]
   qqExpM []     = [||pure []||]
 
+instance QQExp [Maybe A.Metadata] [Maybe L.Metadata] where
+  qqExpM (x:xs) = [||(:) <$> $$(qqExpM x) <*> $$(qqExpM xs)||]
+  qqExpM []     = [||pure []||]
+
 instance QQExp [A.Constant] [L.Constant] where
   qqExpM (x:xs) = [||(:) <$> $$(qqExpM x) <*> $$(qqExpM xs)||]
   qqExpM []     = [||pure []||]
@@ -175,6 +182,10 @@ instance QQExp [A.Type] [L.Type] where
 --   qqExpM (Just x) = [||Just <$> $$(qqExpM x)||]
 
 instance QQExp (Maybe A.Operand) (Maybe L.Operand) where
+  qqExpM Nothing  = [||pure Nothing||]
+  qqExpM (Just x) = [||Just <$> $$(qqExpM x)||]
+
+instance QQExp (Maybe A.Metadata) (Maybe L.Metadata) where
   qqExpM Nothing  = [||pure Nothing||]
   qqExpM (Just x) = [||Just <$> $$(qqExpM x)||]
 
@@ -240,10 +251,10 @@ instance QQExp A.NamedInstruction [L.BasicBlock] where
   qqExpM = qqNamedInstructionE
 instance QQExp A.LabeledInstruction [L.BasicBlock] where
   qqExpM = qqLabeledInstructionE
-instance QQExp A.MetadataNodeID L.MetadataNodeID where
-  qqExpM = qqMetadataNodeIDE
 instance QQExp A.MetadataNode L.MetadataNode where
   qqExpM = qqMetadataNodeE
+instance QQExp A.Metadata L.Metadata where
+  qqExpM = qqMetadata
 instance QQExp A.Operand L.Operand where
   qqExpM = qqOperandE
 instance QQExp A.Constant L.Constant where
@@ -254,7 +265,7 @@ instance QQExp A.Type L.Type where
   qqExpM = qqTypeE
 instance QQExp A.DataLayout L.DataLayout where
   qqExpM = qqDataLayoutE
-instance QQExp A.TargetTriple (Maybe String) where
+instance QQExp A.TargetTriple (Maybe ShortByteString) where
   qqExpM = qqTargetTripleE
 
 qqDefinitionListE :: Conversion [A.Definition] [L.Definition]
@@ -270,8 +281,8 @@ qqDefinitionE (A.GlobalDefinition v) =
     [||L.GlobalDefinition <$> $$(qqExpM v)||]
 qqDefinitionE (A.TypeDefinition n v) =
     [||L.TypeDefinition <$> $$(qqExpM n) <*> $$(qqExpM v)||]
-qqDefinitionE (A.MetadataNodeDefinition i vs) =
-    [||L.MetadataNodeDefinition <$> $$(qqExpM i) <*> $$(qqExpM vs)||]
+-- qqDefinitionE (A.MetadataNodeDefinition i vs) =
+--     [||L.MetadataNodeDefinition <$> $$(qqExpM i) <*> $$(qqExpM vs)||]
 qqDefinitionE (A.NamedMetadataDefinition i vs) =
     [||L.NamedMetadataDefinition <$> $$(qqExpM i) <*> $$(qqExpM vs)||]
 qqDefinitionE (A.ModuleInlineAssembly s) =
@@ -282,21 +293,24 @@ qqDefinitionE a@(A.AntiDefinitionList _s) =
     error $ "Internal Error: unexpected antiquote " ++ show a
 
 qqModuleE :: Conversion A.Module L.Module
-qqModuleE (A.Module n dl tt ds) =
-  [||L.Module <$> $$(qqExpM n) <*> $$(qqExpM dl) <*> $$(qqExpM tt) <*> $$(qqExpM ds)||]
+qqModuleE (A.Module n fn dl tt ds) =
+  [||L.Module <$> $$(qqExpM n) <*> $$(qqExpM fn) <*> $$(qqExpM dl) <*> $$(qqExpM tt) <*> $$(qqExpM ds)||]
 
 qqGlobalE :: Conversion A.Global L.Global
-qqGlobalE (A.GlobalVariable x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB) =
+qqGlobalE (A.GlobalVariable x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD) =
   [||L.GlobalVariable <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
                       <*> $$(qqExpM x5) <*> $$(qqExpM x6) <*> $$(qqExpM x7) <*> $$(qqExpM x8)
-                      <*> $$(qqExpM x9) <*> $$(qqExpM xA) <*> $$(qqExpM xB)||]
-qqGlobalE (A.GlobalAlias x1 x2 x3 x4 x5) =
+                      <*> $$(qqExpM x9) <*> $$(qqExpM xA) <*> $$(qqExpM xB) <*> $$(qqExpM xC)
+                      <*> $$(qqExpM xD)||]
+qqGlobalE (A.GlobalAlias x1 x2 x3 x4 x5 x6 x7 x8 x9) =
   [||L.GlobalAlias <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
-                   <*> $$(qqExpM x5)||]
-qqGlobalE (A.Function x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC) =
+                   <*> $$(qqExpM x5) <*> $$(qqExpM x6) <*> $$(qqExpM x7) <*> $$(qqExpM x8)
+                   <*> $$(qqExpM x9)||]
+qqGlobalE (A.Function x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF xG) =
   [||L.Function <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
                 <*> $$(qqExpM x5) <*> $$(qqExpM x6) <*> $$(qqExpM x7) <*> $$(qqExpM x8)
-                <*> $$(qqExpM x9) <*> $$(qqExpM xA) <*> $$(qqExpM xB) <*> toSSA `fmap` $$(qqExpM xC)||]
+                <*> $$(qqExpM x9) <*> $$(qqExpM xA) <*> $$(qqExpM xB) <*> $$(qqExpM xC)
+                <*> $$(qqExpM xD) <*> $$(qqExpM xE) <*> toSSA `fmap` $$(qqExpM xF) <*> $$(qqExpM xG)||]
 
 qqParameterListE :: Conversion [A.Parameter] [L.Parameter]
 qqParameterListE [] = [||pure []||]
@@ -379,13 +393,13 @@ qqInstructionE (A.Store x1 x2 x3 x4 x5 x6) =
 qqInstructionE (A.GetElementPtr x1 x2 x3 x4) =
   [||Left <$> (L.GetElementPtr <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4))||]
 qqInstructionE (A.Fence x1 x2) =
-  [||Left <$> (L.Fence <$> $$(qqExpM x1) <*> $$(qqExpM x2))||]
-qqInstructionE (A.CmpXchg x1 x2 x3 x4 x5 x6) =
-  [||Left <$> (L.CmpXchg <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4) <*> $$(qqExpM x5)
-               <*> $$(qqExpM x6))||]
+  [||Left <$> (L.Fence <$> pure x1 <*> $$(qqExpM x2))||]
+qqInstructionE (A.CmpXchg x1 x2 x3 x4 x5 x6 x7) =
+  [||Left <$> (L.CmpXchg <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4) <*> pure x5
+               <*> $$(qqExpM x6) <*> $$(qqExpM x7))||]
 qqInstructionE (A.AtomicRMW x1 x2 x3 x4 x5 x6) =
   [||Left <$> (L.AtomicRMW <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
-                 <*> $$(qqExpM x5) <*> $$(qqExpM x6))||]
+                 <*> pure x5 <*> $$(qqExpM x6))||]
 qqInstructionE (A.Trunc x1 x2 x3) =
   [||Left <$> (L.Trunc <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3))||]
 qqInstructionE (A.ZExt x1 x2 x3) =
@@ -435,9 +449,8 @@ qqInstructionE (A.ExtractValue x1 x2 x3) =
   [||Left <$> (L.ExtractValue <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3))||]
 qqInstructionE (A.InsertValue x1 x2 x3 x4) =
   [||Left <$> (L.InsertValue <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4))||]
-qqInstructionE (A.LandingPad x1 x2 x3 x4 x5) =
-  [||Left <$> (L.LandingPad <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
-                  <*> $$(qqExpM x5))||]
+qqInstructionE (A.LandingPad x1 x2 x3 x4) =
+  [||Left <$> (L.LandingPad <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4))||]
 qqInstructionE (A.OperandInstruction x1) =
   [||do x1' <- $$(qqExpM x1)
         let true = L.ConstantOperand $ L.Int 1 1
@@ -536,11 +549,11 @@ qqLabeledInstructionE (A.ForLoop label iterType iterName direction from to step 
 
     let labelString = case label' of
                         L.Name s -> s
-                        L.UnName n -> "num"++show n
-        cond = L.Name (labelString ++ ".cond")
-        labelHead = L.Name (labelString ++ ".head")
-        labelEnd = L.Name (labelString ++ ".end")
-        labelLast = L.Name (labelString ++ ".last")
+                        L.UnName n -> fromString ("num" <> show n)
+        cond = L.Name (labelString <> ".cond")
+        labelHead = L.Name (labelString <> ".head")
+        labelEnd = L.Name (labelString <> ".end")
+        labelLast = L.Name (labelString <> ".last")
 
         iter = L.LocalReference iterType' iterName'
         newIterInstr = case direction of
@@ -573,13 +586,13 @@ qqLabeledInstructionE (A.ITE label cond then_body else_body) =
     else_body' <- $$(qqExpM else_body)
     let labelString = case label' of
           L.Name n -> n
-          L.UnName n -> show n
-        thenLabel = L.Name (labelString ++ ".then")
-        thenLastLabel = L.Name (labelString ++ ".then.last")
-        elseLabel = L.Name (labelString ++ ".else")
-        elseLastLabel = L.Name (labelString ++ ".else.last")
-        endLabel = L.Name (labelString ++ ".end")
-        headLabel = L.Name (labelString ++ ".head")
+          L.UnName n -> fromString (show n)
+        thenLabel = L.Name (labelString <> ".then")
+        thenLastLabel = L.Name (labelString <> ".then.last")
+        elseLabel = L.Name (labelString <> ".else")
+        elseLastLabel = L.Name (labelString <> ".else.last")
+        endLabel = L.Name (labelString <> ".end")
+        headLabel = L.Name (labelString <> ".head")
 
         brEnd l = [L.BasicBlock l [] (L.Do (L.Br endLabel []))]
         pre = [L.BasicBlock label' [] (L.Do (L.Br headLabel []))
@@ -597,11 +610,11 @@ qqLabeledInstructionE (A.While label cond body) =
     body' <- $$(qqExpM body)
     let labelString = case label' of
           L.Name n -> n
-          L.UnName n -> show n
-        bodyLabel = L.Name (labelString ++ ".body")
-        bodyLastLabel = L.Name (labelString ++ ".body.last")
-        endLabel = L.Name (labelString ++ ".end")
-        headLabel = L.Name (labelString ++ ".head")
+          L.UnName n -> fromString (show n)
+        bodyLabel = L.Name (labelString <> ".body")
+        bodyLastLabel = L.Name (labelString <> ".body.last")
+        endLabel = L.Name (labelString <> ".end")
+        headLabel = L.Name (labelString <> ".head")
 
         pre = [L.BasicBlock label' [] (L.Do (L.Br headLabel []))
               ,L.BasicBlock headLabel [] (L.Do (L.CondBr cond' bodyLabel endLabel []))]
@@ -641,17 +654,19 @@ qqMetadataNodeE :: Conversion A.MetadataNode L.MetadataNode
 qqMetadataNodeE (A.MetadataNode x1) =
   [||L.MetadataNode <$> $$(qqExpM x1)||]
 qqMetadataNodeE (A.MetadataNodeReference x1) =
-  [||L.MetadataNodeReference <$> $$(qqExpM x1)||]
+  [||L.MetadataNodeReference <$> pure x1||]
+
+qqMetadata :: Conversion A.Metadata L.Metadata
+qqMetadata (A.MDString s) =
+  [||L.MDString <$> $$(qqExpM s)||]
 
 qqOperandE :: Conversion A.Operand L.Operand
 qqOperandE (A.LocalReference x1 x2) =
   [||L.LocalReference <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
 qqOperandE (A.ConstantOperand x1) =
   [||L.ConstantOperand <$> $$(qqExpM x1)||]
-qqOperandE (A.MetadataStringOperand x1) =
-  [||A.MetadataStringOperand <$> $$(qqExpM x1)||]
-qqOperandE (A.MetadataNodeOperand x1) =
-  [||A.MetadataNodeOperand <$> $$(qqExpM x1)||]
+qqOperandE (A.MetadataOperand x1) =
+  [||L.MetadataOperand <$> $$(qqExpM x1)||]
 qqOperandE (A.AntiOperand s) =
   [||$$(unsafeTExpCoerce $ antiVarE s)||]
 
@@ -688,7 +703,7 @@ qqNameE (A.UnName x1) =
   [||L.UnName <$> $$(qqExpM x1)||]
 qqNameE A.NeedsName = do
   n <- runIO $ atomicModifyIORef' counter $ \n -> (n+1,n)
-  [||pure $ L.Name $ "n" ++ show (n :: Int)||]
+  [||pure $ L.Name $ fromString $ "n" <> show (n :: Int)||]
 qqNameE (A.AntiName s) =
   unsafeTExpCoerce [|$(antiVarE s) >>= return . toName|]
 
@@ -699,8 +714,8 @@ qqTypeE (A.IntegerType x1) =
   [||L.IntegerType <$> $$(qqExpM x1)||]
 qqTypeE (A.PointerType x1 x2) =
   [||L.PointerType <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
-qqTypeE (A.FloatingPointType x1 x2) =
-  [||L.FloatingPointType <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqTypeE (A.FloatingPointType x1) =
+  [||L.FloatingPointType <$> $$(qqExpM x1)||]
 qqTypeE (A.FunctionType x1 x2 x3) =
   [||L.FunctionType <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
 qqTypeE (A.VectorType x1 x2) =
@@ -717,13 +732,13 @@ qqTypeE (A.AntiType s) =
   [||$$(unsafeTExpCoerce $ antiVarE s)||]
 
 qqDataLayoutE :: Conversion A.DataLayout L.DataLayout
-qqDataLayoutE (A.DataLayout x1 x2 x3 x4 x5) =
+qqDataLayoutE (A.DataLayout x1 x2 x3 x4 x5 x6 x7) =
   [||L.DataLayout <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
-                  <*> $$(qqExpM x5)||]
+                  <*> $$(qqExpM x5) <*> $$(qqExpM x6) <*> $$(qqExpM x7)||]
 qqDataLayoutE (A.AntiDataLayout s) =
   unsafeTExpCoerce $ antiVarE s
 
-qqTargetTripleE :: Conversion A.TargetTriple (Maybe String)
+qqTargetTripleE :: Conversion A.TargetTriple (Maybe ShortByteString)
 qqTargetTripleE A.NoTargetTriple =
   [||pure Nothing||]
 qqTargetTripleE (A.TargetTriple v) =

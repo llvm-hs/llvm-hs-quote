@@ -41,7 +41,7 @@ library
     bytestring,
     symbol,
     srcloc,
-    mainland-pretty <= 0.3,
+    mainland-pretty,
     llvm-hs-pure,
     syb,
     template-haskell >= 2.7,

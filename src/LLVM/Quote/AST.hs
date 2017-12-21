@@ -20,8 +20,9 @@ module LLVM.Quote.AST (
   Instruction(..),
   NamedInstruction(..),
   LabeledInstruction(..),
-  MetadataNodeID(..),
+  A.MetadataNodeID(..),
   MetadataNode(..),
+  Metadata(..),
   Operand(..),
   CallableOperand,
   Constant(..),
@@ -35,6 +36,7 @@ module LLVM.Quote.AST (
 ) where
 
 import LLVM.Prelude
+import qualified LLVM.AST.Operand as A
 import qualified LLVM.AST.Float as A
 import qualified LLVM.AST.Linkage as A
 import qualified LLVM.AST.Visibility as A
@@ -49,6 +51,9 @@ import qualified LLVM.AST.RMWOperation as A
 import qualified LLVM.AST.Type as A
 import qualified LLVM.AST.DataLayout as A
 import qualified LLVM.AST.ParameterAttribute as A
+import qualified LLVM.AST.ThreadLocalStorage as TLS
+import qualified LLVM.AST.DLL as DLL
+import qualified LLVM.AST.Global as G
 
 import Data.Word
 import Data.Char (ord, chr)
@@ -72,45 +77,55 @@ data Global
         name :: Name,
         linkage :: A.Linkage,
         visibility :: A.Visibility,
-        isThreadLocal :: Bool,
-        addrSpace :: A.AddrSpace,
-        hasUnnamedAddr :: Bool,
+        dllStorageClass :: Maybe DLL.StorageClass,
+        threadLocalMode :: Maybe TLS.Model,
+        unnamedAddr :: Maybe G.UnnamedAddr,
         isConstant :: Bool,
         _type' :: Type,
+        addrSpace :: A.AddrSpace,
         initializer :: Maybe Constant,
-        section :: Maybe String,
-        alignmentG :: Word32
+        section :: Maybe ShortByteString,
+        comdat :: Maybe ShortByteString,
+        alignment :: Word32
       }
     -- | <http://llvm.org/docs/LangRef.html#aliases>
     | GlobalAlias {
         name :: Name,
         linkage :: A.Linkage,
         visibility :: A.Visibility,
+        dllStorageClass :: Maybe DLL.StorageClass,
+        threadLocalMode :: Maybe TLS.Model,
+        unnamedAddr :: Maybe G.UnnamedAddr,
         _type' :: Type,
+        addrSpace :: A.AddrSpace,
         aliasee :: Constant
       }
     -- | <http://llvm.org/docs/LangRef.html#functions>
     | Function {
         linkage :: A.Linkage,
         visibility :: A.Visibility,
+        dllStorageClass :: Maybe DLL.StorageClass,
         _callingConvention :: A.CallingConvention,
         _returnAttributes :: [A.ParameterAttribute],
         returnType :: Type,
         name :: Name,
         parameters :: ([Parameter],Bool), -- ^ snd indicates varargs
-        _functionAttributes :: [A.FunctionAttribute],
-        section :: Maybe String,
+        _functionAttributes :: [Either A.GroupID A.FunctionAttribute],
+        section :: Maybe ShortByteString,
+        comdat :: Maybe ShortByteString,
         alignment :: Word32,
-        garbageCollectorName :: Maybe String,
-        instructions :: [LabeledInstruction]
+        garbageCollectorName :: Maybe ShortByteString,
+        prefix :: Maybe Constant,
+        instructions :: [LabeledInstruction],
+        _personalityFunction :: Maybe Constant
       }
   deriving (Eq, Read, Show, Typeable, Data)
 
 -- | 'Parameter's for 'Function's
 data Parameter
   = Parameter Type Name [A.ParameterAttribute]
-  | AntiParameter String
-  | AntiParameterList String
+  | AntiParameter ShortByteString
+  | AntiParameterList ShortByteString
   deriving (Eq, Read, Show, Typeable, Data)
 
 data Direction
@@ -122,17 +137,18 @@ data Direction
 data Definition
   = GlobalDefinition Global
   | TypeDefinition Name (Maybe Type)
-  | MetadataNodeDefinition MetadataNodeID [Maybe Operand]
-  | NamedMetadataDefinition String [MetadataNodeID]
-  | ModuleInlineAssembly String
-  | AntiDefinition String
-  | AntiDefinitionList String
+  | MetadataNodeDefinition A.MetadataNodeID [Maybe Operand]
+  | NamedMetadataDefinition ShortByteString [A.MetadataNodeID]
+  | ModuleInlineAssembly ByteString
+  | AntiDefinition ShortByteString
+  | AntiDefinitionList ShortByteString
     deriving (Eq, Read, Show, Typeable, Data)
 
 -- | <http://llvm.org/docs/LangRef.html#modulestructure>
 data Module =
   Module {
-    moduleName :: String,
+    moduleName :: ShortByteString,
+    moduleSourceFileName :: ShortByteString,
     -- | a 'DataLayout', if specified, must match that of the eventual code generator
     moduleDataLayout :: Maybe DataLayout,
     moduleTargetTriple :: TargetTriple,
@@ -142,7 +158,7 @@ data Module =
 
 -- | <http://llvm.org/docs/LangRef.html#metadata-nodes-and-metadata-strings>
 -- Metadata can be attached to an instruction
-type InstructionMetadata = [(String, MetadataNode)]
+type InstructionMetadata = [(ShortByteString, MetadataNode)]
 
 -- | For the redoubtably complex 'LandingPad' instruction
 data LandingPadClause
@@ -312,6 +328,7 @@ data Instruction
       expected :: Operand,
       replacement :: Operand,
       atomicity :: A.Atomicity,
+      failureMemoryOrdering :: A.MemoryOrdering,
       metadata :: InstructionMetadata
     }
   | AtomicRMW {
@@ -405,12 +422,12 @@ data Instruction
       metadata :: InstructionMetadata
     }
   | Call {
-      isTailCall :: Bool,
+      tailCallKind :: Maybe A.TailCallKind,
       callingConvention :: A.CallingConvention,
       returnAttributes :: [A.ParameterAttribute],
       function :: CallableOperand,
       arguments :: [(Operand, [A.ParameterAttribute])],
-      functionAttributes :: [A.FunctionAttribute],
+      functionAttributes :: [Either A.GroupID A.FunctionAttribute],
       metadata :: InstructionMetadata
   }
   | Select {
@@ -454,12 +471,11 @@ data Instruction
     }
   | LandingPad {
       type' :: Type,
-      personalityFunction :: Operand,
       cleanup :: Bool,
       clauses :: [LandingPadClause],
       metadata :: InstructionMetadata
     }
-  | AntiInstruction String
+  | AntiInstruction ShortByteString
   | Ret {
       returnOperand :: Maybe Operand,
       metadata :: InstructionMetadata
@@ -490,7 +506,7 @@ data Instruction
       returnAttributes' :: [A.ParameterAttribute],
       function' :: CallableOperand,
       arguments' :: [(Operand, [A.ParameterAttribute])],
-      functionAttributes' :: [A.FunctionAttribute],
+      functionAttributes' :: [Either A.GroupID A.FunctionAttribute],
       returnDest :: Name,
       exceptionDest :: Name,
       metadata :: InstructionMetadata
@@ -536,22 +552,10 @@ data LabeledInstruction
 data NamedInstruction
   = Name := Instruction
   | Do Instruction
-  | AntiInstructionList String
-  | AntiBasicBlock String
-  | AntiBasicBlockList String
+  | AntiInstructionList ShortByteString
+  | AntiBasicBlock ShortByteString
+  | AntiBasicBlockList ShortByteString
   deriving (Eq, Read, Show, Typeable, Data)
-
--- | A 'MetadataNodeID' is a number for identifying a metadata node.
--- Note this is different from "named metadata", which are represented with
--- 'LLVM.AST.NamedMetadataDefinition'.
-newtype MetadataNodeID = MetadataNodeID Word
-  deriving (Eq, Ord, Read, Show, Typeable, Data)
-
--- | <http://llvm.org/docs/LangRef.html#metadata>
-data MetadataNode
-  = MetadataNode [Maybe Operand]
-  | MetadataNodeReference MetadataNodeID
-  deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 -- | An 'Operand' is roughly that which is an argument to an 'LLVM.AST.Instruction.Instruction'
 data Operand
@@ -559,10 +563,21 @@ data Operand
   = LocalReference Type Name
   -- | 'Constant's include 'LLVM.AST.Constant.GlobalReference', for \@foo
   | ConstantOperand Constant
-  | MetadataStringOperand String
-  | MetadataNodeOperand MetadataNode
-  | AntiOperand String
+  | MetadataOperand Metadata
+  | AntiOperand ShortByteString
   deriving (Eq, Ord, Read, Show, Typeable, Data)
+
+data MetadataNode
+  = MetadataNode [Maybe Metadata]
+  | MetadataNodeReference A.MetadataNodeID
+  deriving (Eq, Ord, Read, Show, Typeable, Data)
+
+data Metadata
+  = MDString ShortByteString
+  | MDNode MetadataNode
+  | MDValue Operand
+  deriving (Eq, Ord, Read, Show, Typeable, Data)
+
 
 -- | The 'LLVM.AST.Instruction.Call' instruction is special: the callee can be inline assembly
 type CallableOperand  = Either InlineAssembly Operand
@@ -579,7 +594,7 @@ the rules of what IR is legal into the Haskell types.
 -}
 data Constant
     = Int { integerBits :: Word32, integerValue :: Integer }
-    | IntAntiBs { antiIntegerBits :: String, integerValue :: Integer }
+    | IntAntiBs { antiIntegerBits :: ShortByteString, integerValue :: Integer }
     | Float { floatValue :: A.SomeFloat }
     | Null { constantType :: Type }
     | Struct { structName :: Maybe Name, _isPacked :: Bool, memberValues :: [ Constant ] }
@@ -588,7 +603,7 @@ data Constant
     | Undef { constantType :: Type }
     | BlockAddress { blockAddressFunction :: Name, blockAddressBlock :: Name }
     | GlobalReference Type Name
-    | AntiConstant String
+    | AntiConstant ShortByteString
     deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 {- |
@@ -613,10 +628,10 @@ unnamed node numbers should be thought of as having any scope limited to the 'LL
 which they are used.
 -}
 data Name
-    = Name String -- ^ a string name
+    = Name ShortByteString -- ^ a string name
     | UnName Word -- ^ a number for a nameless thing
     | NeedsName
-    | AntiName String
+    | AntiName ShortByteString
    deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 -- | <http://llvm.org/docs/LangRef.html#type-system>
@@ -628,7 +643,7 @@ data Type
   -- | <http://llvm.org/docs/LangRef.html#pointer-type>
   | PointerType { pointerReferent :: Type, pointerAddrSpace :: A.AddrSpace }
   -- | <http://llvm.org/docs/LangRef.html#floating-point-types>
-  | FloatingPointType { typeBits :: Word32, floatingPointType :: A.FloatingPointType }
+  | FloatingPointType { floatingPointType :: A.FloatingPointType }
   -- | <http://llvm.org/docs/LangRef.html#function-type>
   | FunctionType { resultType :: Type, argumentTypes :: [Type], isVarArg :: Bool }
   -- | <http://llvm.org/docs/LangRef.html#vector-type>
@@ -641,7 +656,7 @@ data Type
   | NamedTypeReference Name
   -- | <http://llvm.org/docs/LangRef.html#metadata-type>
   | MetadataType -- only to be used as a parameter type for a few intrinsics
-  | AntiType String
+  | AntiType ShortByteString
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 -- | <http://llvm.org/docs/LangRef.html#inline-assembler-expressions>
@@ -650,8 +665,8 @@ data Type
 data InlineAssembly
   = InlineAssembly {
       __type' :: Type,
-      assembly :: String,
-      constraints :: String,
+      assembly :: ByteString,
+      constraints :: ShortByteString,
       hasSideEffects :: Bool,
       alignStack :: Bool,
       dialect :: A.Dialect
@@ -662,21 +677,27 @@ data InlineAssembly
 -- optimization
 data DataLayout
   = DataLayout {
-    endianness :: Maybe A.Endianness,
+    endianness :: A.Endianness,
+    mangling :: Maybe A.Mangling,
     stackAlignment :: Maybe Word32,
     pointerLayouts :: M.Map A.AddrSpace (Word32, A.AlignmentInfo),
     typeLayouts :: M.Map (A.AlignType, Word32) A.AlignmentInfo,
+    aggregateLayout :: A.AlignmentInfo,
     nativeSizes :: Maybe (S.Set Word32)
   }
-  | AntiDataLayout String
+  | AntiDataLayout ShortByteString
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 data TargetTriple
   = NoTargetTriple
-  | TargetTriple String
-  | AntiTargetTriple String
+  | TargetTriple ShortByteString
+  | AntiTargetTriple ShortByteString
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
+deriving instance Lift A.Mangling
+deriving instance Lift DLL.StorageClass
+deriving instance Lift TLS.Model
+deriving instance Lift G.UnnamedAddr
 deriving instance Lift A.Visibility
 deriving instance Lift A.Linkage
 deriving instance Lift A.ParameterAttribute
@@ -702,8 +723,15 @@ deriving instance Lift LandingPadClause
 deriving instance Lift A.MemoryOrdering
 deriving instance Lift Name
 deriving instance Lift MetadataNode
-deriving instance Lift MetadataNodeID
-deriving instance Lift Operand
+deriving instance Lift A.MetadataNodeID
+instance Lift Operand where
+  lift (LocalReference ty n) = [| LocalReference ty n |]
+  lift (ConstantOperand c) = [| ConstantOperand c |]
+  lift (MetadataOperand md) = [| MetadataOperand md |]
+instance Lift Metadata where
+  lift (MDString s) = [| MDString s |]
+  lift (MDNode node) = [| MDNode node |]
+  lift (MDValue o) = [| MDValue o |]
 deriving instance Lift Type
 deriving instance Lift A.FloatingPointType
 deriving instance Lift DataLayout
@@ -714,6 +742,8 @@ deriving instance Lift Definition
 deriving instance Lift Module
 deriving instance Lift TargetTriple
 deriving instance Lift FastMathFlags
+deriving instance Lift A.GroupID
+deriving instance Lift A.TailCallKind
 
 instance Lift ShortByteString where
   lift b = [| fromString $(lift (unpack b)) |]
