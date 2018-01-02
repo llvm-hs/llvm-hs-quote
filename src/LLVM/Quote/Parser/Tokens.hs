@@ -11,8 +11,10 @@ import qualified Data.Map as Map
 import Data.Bits
 import Data.Word
 import Text.PrettyPrint.Mainland
-import LLVM.Quote.AST
 import Data.List (foldl')
+
+import LLVM.Prelude
+import LLVM.Quote.AST
 
 data Visibility
   = Global
@@ -26,7 +28,7 @@ data Token
   | TfloatConst Rational
   | TstringConst String
   | TcstringConst String
-  | Tnamed Visibility String
+  | Tnamed Visibility ShortByteString
   | Tunnamed Visibility Word
   | TjumpLabel String
   | Tlparen

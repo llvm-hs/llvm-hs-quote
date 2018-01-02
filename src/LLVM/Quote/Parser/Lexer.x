@@ -24,6 +24,7 @@ import Data.Loc
 import Data.Ratio ((%))
 import Text.PrettyPrint.Mainland
 
+import LLVM.AST.Name (mkName)
 import LLVM.Quote.Parser.Tokens
 import LLVM.Quote.Parser.Monad
 }
@@ -145,7 +146,7 @@ identifier beg end = do
       '@' -> return Global
       '!' -> return Meta
     case isDigit $ head $ tail ident of
-      False -> return $ locateTok beg end $ Tnamed v (tail ident)
+      False -> return $ locateTok beg end $ Tnamed v (fromString (tail ident))
       True  -> return $ locateTok beg end $ Tunnamed v (read $ tail ident)
   where
     ident :: String
@@ -423,3 +424,5 @@ lexToken = do
       AlexSkip end _       -> setInput end >> lexToken
       AlexToken end _len t  -> setInput end >> t beg end
 }
+
+-- vim: set filetype=alex:

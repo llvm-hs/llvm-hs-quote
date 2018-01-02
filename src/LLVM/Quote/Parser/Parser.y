@@ -1112,3 +1112,5 @@ rev xs = go [] xs
     go  l  RNil          = l
     go  l  (RCons x xs)  = go (x : l) xs
 }
+
+-- vim: set filetype=happy:
