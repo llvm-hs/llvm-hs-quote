@@ -21,13 +21,14 @@ import LLVM.Quote.Parser.Monad
 import qualified LLVM.Quote.Parser.Tokens as T
 import qualified LLVM.Quote.AST as A
 import qualified LLVM.AST.Float as A
+import qualified LLVM.AST.Type as LA
 import qualified LLVM.AST.Linkage as A
 import qualified LLVM.AST.Visibility as A
-import qualified LLVM.AST.CallingConvention as A
+import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.AddrSpace as A
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.InlineAssembly as A ( Dialect(..) )
-import qualified LLVM.AST.Instruction as A ( Atomicity(..), MemoryOrdering(..) )
+import qualified LLVM.AST.Instruction as A ( Atomicity(..), MemoryOrdering(..), SynchronizationScope(..) )
 import qualified LLVM.AST.IntegerPredicate as AI
 import qualified LLVM.AST.FloatingPointPredicate as AF
 import qualified LLVM.AST.RMWOperation as AR
@@ -342,8 +343,8 @@ operand :: { A.Type -> A.Operand }
 operand :
     fConstant           { A.ConstantOperand . $1 }
   | name                { \t -> A.LocalReference t $1 }
-  | '!' STRING          { \A.MetadataType -> A.MetadataStringOperand $2 }
-  | metadataNode        { \A.MetadataType -> A.MetadataNodeOperand $1 }
+  | '!' STRING          { \A.MetadataType -> A.MetadataOperand $2 }
+  | metadataNode        { \A.MetadataType -> A.MetadataOperand $1 }
   | cOperand            { \_ -> $1 }
 
 mOperand :: { Maybe A.Operand }
@@ -474,8 +475,8 @@ memoryOrdering :
 
 atomicity :: { A.Atomicity }
 atomicity :
-    'singlethread' memoryOrdering    { A.Atomicity False $2 }
-  | memoryOrdering                    { A.Atomicity True $1 }
+    'singlethread' memoryOrdering    { (SingleThread, $2) }
+  | memoryOrdering                   { (System, $1) }
 
 rmwOperation :: { AR.RMWOperation }
 rmwOperation :
@@ -660,7 +661,7 @@ instruction_ :
   | 'cmpxchg' volatile tOperand ',' tOperand ',' tOperand atomicity
                                             { A.CmpXchg $2 $3 $5 $7 $8 }
   | 'cmpxchg' volatile tOperand ',' tOperand ',' tOperand atomicity memoryOrdering
-                                            {% if A.memoryOrdering $8 == $9
+                                            {% if A.failureMemoryOrdering $8 == $9
                                                  then return (A.CmpXchg $2 $3 $5 $7 $8)
                                                  else fail "cmpxchg: both orderings must be the same at this point, sry" }
   | 'atomicrmw' volatile rmwOperation tOperand ',' tOperand atomicity
@@ -794,9 +795,9 @@ addrSpace :
 typeNoVoid :: { A.Type }
 typeNoVoid :
     INTEGERTYPE               { A.IntegerType $1 }
-  | 'half'                    { A.FloatingPointType 16 A.IEEE }
-  | 'float'                   { A.FloatingPointType 32 A.IEEE }
-  | 'double'                  { A.FloatingPointType 64 A.IEEE }
+  | 'half'                    { A.FloatingPointType LA.HalfFP }
+  | 'float'                   { A.FloatingPointType LA.FloatFP }
+  | 'double'                  { A.FloatingPointType LA.DoubleFP }
   | type addrSpace '*'        { A.PointerType $1 $2 }
   | type '(' typeListVar ')'  { A.FunctionType $1 (fst $3) (snd $3) }
   | '<' INT 'x' type '>'      { A.VectorType (fromIntegral $2) $4 }
@@ -856,13 +857,13 @@ visibility :
   | 'hidden'                   { A.Hidden }
   | 'protected'                { A.Protected }
 
-cconv :: { A.CallingConvention }
+cconv :: { CC.CallingConvention }
 cconv :
-    {- empty -}                { A.C }
-  | 'ccc'                      { A.C }
-  | 'fastcc'                   { A.Fast }
-  | 'coldcc'                   { A.Cold }
-  | 'cc' INT                   { if $2 == 10 then A.GHC else A.Numbered (fromInteger $2) }
+    {- empty -}                { CC.C }
+  | 'ccc'                      { CC.C }
+  | 'fastcc'                   { CC.Fast }
+  | 'coldcc'                   { CC.Cold }
+  | 'cc' INT                   { if $2 == 10 then CC.GHC else CC.Numbered (fromInteger $2) }
 
 parameter :: { A.Parameter }
 parameter :
@@ -1062,8 +1063,6 @@ dataLayout s = A.DataLayout endianness stackAlignment pointerLayouts typeLayouts
       'i' -> reads size >>= \(size,"") -> return (A.IntegerAlign, size)
       'v' -> reads size >>= \(size,"") -> return (A.VectorAlign, size)
       'f' -> reads size >>= \(size,"") -> return (A.FloatAlign, size)
-      's' -> reads size >>= \(size,"") -> return (A.StackAlign, size)
-      'a' -> return (A.AggregateAlign, 0)
       _ -> []
     (abi',"") <- reads abi
     pref' <- case pref of

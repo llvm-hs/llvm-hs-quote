@@ -55,14 +55,12 @@ import qualified LLVM.AST.ThreadLocalStorage as TLS
 import qualified LLVM.AST.DLL as DLL
 import qualified LLVM.AST.Global as G
 
-import Data.Word
-import Data.Char (ord, chr)
+import Data.Char (chr)
 import Data.ByteString.Short as BS
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Language.Haskell.TH.Lift
 import Language.Haskell.TH.Syntax (Lift(..))
-import Instances.TH.Lift
+import Instances.TH.Lift()
 
 data Extensions
   = Antiquotation
