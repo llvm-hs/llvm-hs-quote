@@ -32,7 +32,6 @@ import Data.Data (Data(..))
 import Data.String (fromString)
 import Language.Haskell.Meta (parseExp)
 import Language.Haskell.TH
-import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Syntax
 import Data.IORef (atomicModifyIORef')
 import Language.Haskell.TH.Quote (QuasiQuoter(..))
@@ -732,9 +731,8 @@ qqTypeE (A.AntiType s) =
   [||$$(unsafeTExpCoerce $ antiVarE s)||]
 
 qqDataLayoutE :: Conversion A.DataLayout L.DataLayout
-qqDataLayoutE (A.DataLayout x1 x2 x3 x4 x5 x6 x7) =
-  [||L.DataLayout <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
-                  <*> $$(qqExpM x5) <*> $$(qqExpM x6) <*> $$(qqExpM x7)||]
+qqDataLayoutE (A.DataLayout dl) =
+  [||$$(qqExpM dl)||]
 qqDataLayoutE (A.AntiDataLayout s) =
   unsafeTExpCoerce $ antiVarE s
 

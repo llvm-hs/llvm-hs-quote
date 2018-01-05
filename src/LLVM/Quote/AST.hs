@@ -5,7 +5,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverlappingInstances #-} -- XXX: this is CRAZY
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module LLVM.Quote.AST (
@@ -57,8 +56,6 @@ import qualified LLVM.AST.Global as G
 
 import Data.Char (chr)
 import Data.ByteString.Short as BS
-import qualified Data.Map as M
-import qualified Data.Set as S
 import Language.Haskell.TH.Syntax (Lift(..))
 import Instances.TH.Lift()
 
@@ -135,7 +132,7 @@ data Direction
 data Definition
   = GlobalDefinition Global
   | TypeDefinition Name (Maybe Type)
-  | MetadataNodeDefinition A.MetadataNodeID [Maybe Operand]
+  | MetadataNodeDefinition A.MetadataNodeID [Maybe Metadata]
   | NamedMetadataDefinition ShortByteString [A.MetadataNodeID]
   | ModuleInlineAssembly ByteString
   | AntiDefinition ShortByteString
@@ -674,15 +671,7 @@ data InlineAssembly
 -- | a description of the various data layout properties which may be used during
 -- optimization
 data DataLayout
-  = DataLayout {
-    endianness :: A.Endianness,
-    mangling :: Maybe A.Mangling,
-    stackAlignment :: Maybe Word32,
-    pointerLayouts :: M.Map A.AddrSpace (Word32, A.AlignmentInfo),
-    typeLayouts :: M.Map (A.AlignType, Word32) A.AlignmentInfo,
-    aggregateLayout :: A.AlignmentInfo,
-    nativeSizes :: Maybe (S.Set Word32)
-  }
+  = DataLayout A.DataLayout
   | AntiDataLayout ShortByteString
   deriving (Eq, Ord, Read, Show, Typeable, Data)
 
@@ -716,7 +705,6 @@ deriving instance Lift A.SynchronizationScope
 deriving instance Lift InlineAssembly
 deriving instance Lift A.Dialect
 deriving instance Lift A.RMWOperation
-deriving instance Lift A.Atomicity
 deriving instance Lift LandingPadClause
 deriving instance Lift A.MemoryOrdering
 deriving instance Lift Name
@@ -742,6 +730,7 @@ deriving instance Lift TargetTriple
 deriving instance Lift FastMathFlags
 deriving instance Lift A.GroupID
 deriving instance Lift A.TailCallKind
+deriving instance Lift A.DataLayout
 
 instance Lift ShortByteString where
   lift b = [| fromString $(lift (unpack b)) |]
