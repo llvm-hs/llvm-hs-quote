@@ -1,6 +1,8 @@
 llvm-hs-quote
 =============
 
+[![Build Status](https://travis-ci.org/llvm-hs/llvm-hs-quote.svg?branch=master)](https://travis-ci.org/llvm-hs/llvm-hs-quote)
+
 **Initial fork of
 [`llvm-general-quote`](https://github.com/tvh/llvm-general-quote/issues/6) to
 support the modern `llvm-hs` family of libraries.**
