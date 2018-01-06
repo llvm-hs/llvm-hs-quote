@@ -9,12 +9,17 @@ import Control.Monad.Except
 import Data.List (intersperse)
 import Data.List.Split
 import Data.Loc
+import Data.String (fromString)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Data.Maybe (fromMaybe, catMaybes, listToMaybe)
 import Data.Word
 import Data.Char (ord)
+import Data.ByteString.Short (ShortByteString)
 import Text.PrettyPrint.Mainland
+
+import qualified Data.ByteString.Char8 as BS
+
 
 import LLVM.Quote.Parser.Lexer
 import LLVM.Quote.Parser.Monad
@@ -28,12 +33,13 @@ import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.AddrSpace as A
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.InlineAssembly as A ( Dialect(..) )
-import qualified LLVM.AST.Instruction as A ( Atomicity(..), MemoryOrdering(..), SynchronizationScope(..) )
+import qualified LLVM.AST.Instruction as A ( Atomicity(..), MemoryOrdering(..), SynchronizationScope(..), TailCallKind(..) )
 import qualified LLVM.AST.IntegerPredicate as AI
 import qualified LLVM.AST.FloatingPointPredicate as AF
 import qualified LLVM.AST.RMWOperation as AR
 import qualified LLVM.AST.DataLayout as A
   ( Endianness(..), AlignmentInfo(..), AlignType(..) )
+import qualified LLVM.DataLayout as A
 }
 
 %token
@@ -246,6 +252,8 @@ import qualified LLVM.AST.DataLayout as A
  'section'          { L _ T.Tsection }
  'gc'               { L _ T.Tgc }
  'tail'             { L _ T.Ttail }
+ 'musttail'         { L _ T.Tmusttail }
+ 'notail'           { L _ T.Tnotail }
 
  'for'              { L _ T.Tfor }
  'in'               { L _ T.Tin }
@@ -310,7 +318,7 @@ fConstant :
 {- Constants that don't require a type -}
 cConstant :: { A.Constant }
 cConstant :
-    ANTI_CONST            { A.AntiConstant $1 }
+    ANTI_CONST            { A.AntiConstant (fromString $1) }
   | CSTRING               { A.Array (A.IntegerType 8) (map (A.Int 8 . fromIntegral . ord) $1) }
     
 constant :: { A.Type -> A.Constant }
@@ -343,8 +351,7 @@ operand :: { A.Type -> A.Operand }
 operand :
     fConstant           { A.ConstantOperand . $1 }
   | name                { \t -> A.LocalReference t $1 }
-  | '!' STRING          { \A.MetadataType -> A.MetadataOperand $2 }
-  | metadataNode        { \A.MetadataType -> A.MetadataOperand $1 }
+  | metadata            { \A.MetadataType -> A.MetadataOperand $1 }
   | cOperand            { \_ -> $1 }
 
 mOperand :: { Maybe A.Operand }
@@ -360,7 +367,7 @@ tOperand :
 {- Operands that don't require a type -}
 cOperand :: { A.Operand }
 cOperand :
-    ANTI_OPR            { A.AntiOperand $1 }
+    ANTI_OPR            { A.AntiOperand (fromString $1) }
   | cConstant           { A.ConstantOperand $1 }
 
 {- Binary operator operands -}
@@ -475,8 +482,8 @@ memoryOrdering :
 
 atomicity :: { A.Atomicity }
 atomicity :
-    'singlethread' memoryOrdering    { (SingleThread, $2) }
-  | memoryOrdering                   { (System, $1) }
+    'singlethread' memoryOrdering    { (A.SingleThread, $2) }
+  | memoryOrdering                   { (A.System, $1) }
 
 rmwOperation :: { AR.RMWOperation }
 rmwOperation :
@@ -570,12 +577,14 @@ callableOperand :: { [A.Type] -> A.CallableOperand }
 callableOperand :
     type operand       { \ts -> Right ($2 (A.FunctionType $1 ts False)) }
   | type 'asm' sideeffect alignstack dialect STRING ',' STRING
-                       { \ts -> Left (A.InlineAssembly (A.FunctionType $1 ts False) $6 $8 $3 $4 $5) }
+                       { \ts -> Left (A.InlineAssembly (A.FunctionType $1 ts False) (fromString $6) (fromString $8) $3 $4 $5) }
 
-tail :: { Bool }
+tail :: { Maybe A.TailCallKind }
 tail :
-    {- empty -}          { False }
-  | 'tail'               { True }
+    {- empty -}          { Nothing }
+  | 'tail'               { Just A.Tail }
+  | 'musttail'           { Just A.MustTail }
+  | 'notail'             {Just A.NoTail }
 
 idx :: { Word32 }
 idx :
@@ -604,6 +613,11 @@ labels :
     label                         { RCons $1 RNil }
   | labels ','label               { RCons $3 $1 }
 
+metadata :: { A.Metadata }
+metadata :
+    metadataNode { A.MDNode $1 }
+  | '!' STRING   { A.MDString (fromString $2) }
+
 metadataNodeID :: { A.MetadataNodeID }
 metadataNodeID :
     UNNAMED_META       { A.MetadataNodeID $1 }
@@ -618,11 +632,11 @@ metadataNode :
     metadataNodeID         { A.MetadataNodeReference $1 }
   | '!' '{' metadataList '}'   { A.MetadataNode (rev $3) }
 
-instructionMetaDataItem :: { (String, A.MetadataNode) }
+instructionMetaDataItem :: { (ShortByteString, A.MetadataNode) }
 instructionMetaDataItem :
     ',' NAMED_META metadataNode   { ($2,$3) }
 
-instructionMetadata :: { RevList (String, A.MetadataNode) }
+instructionMetadata :: { RevList (ShortByteString, A.MetadataNode) }
 instructionMetadata :
     {- empty -}               { RNil }
   | instructionMetadata instructionMetaDataItem
@@ -659,11 +673,9 @@ instruction_ :
                                             { A.GetElementPtr $2 $3 (rev $4) }
   | 'fence' atomicity                       { A.Fence $2 }
   | 'cmpxchg' volatile tOperand ',' tOperand ',' tOperand atomicity
-                                            { A.CmpXchg $2 $3 $5 $7 $8 }
+                                            { A.CmpXchg $2 $3 $5 $7 $8 A.Unordered }
   | 'cmpxchg' volatile tOperand ',' tOperand ',' tOperand atomicity memoryOrdering
-                                            {% if A.failureMemoryOrdering $8 == $9
-                                                 then return (A.CmpXchg $2 $3 $5 $7 $8)
-                                                 else fail "cmpxchg: both orderings must be the same at this point, sry" }
+                                            { A.CmpXchg $2 $3 $5 $7 $8 $9 }
   | 'atomicrmw' volatile rmwOperation tOperand ',' tOperand atomicity
                                             { A.AtomicRMW $2 $3 $4 $6 $7 }
   | 'trunc' tOperand 'to' type              { A.Trunc $2 $4 }
@@ -683,7 +695,7 @@ instruction_ :
   | 'fcmp' fpP binOperands                  { A.FCmp $2 (fst $3) (snd $3) }
   | 'phi' type phiList                      { A.Phi $2 (rev ($3 $2)) }
   | tail 'call' cconv parameterAttributes callableOperand '(' argumentList ')' fAttributes
-                                            { A.Call $1 $3 (rev $4) ($5 (map fst (rev $7))) (map snd (rev $7)) (rev $9) }
+                                            { A.Call $1 $3 (rev $4) ($5 (map fst (rev $7))) (map snd (rev $7)) (map Right (rev $9)) }
   | 'select' tOperand ',' tOperand ',' tOperand
                                             { A.Select $2 $4 $6 }
   | 'va_arg' tOperand ',' type              { A.VAArg $2 $4 }
@@ -695,8 +707,8 @@ instruction_ :
   | 'extractvalue' tOperand ',' idxs        { A.ExtractValue $2 (rev $4) }
   | 'insertvalue' tOperand ',' tOperand ',' idxs
                                             { A.InsertValue $2 $4 (rev $6) }
-  | 'landingpad' type 'personality' tOperand cleanup clauses
-                                            { A.LandingPad $2 $4 $5 (rev $6) }
+  | 'landingpad' type cleanup clauses
+                                            { A.LandingPad $2 $3 (rev $4) }
   | 'ret' 'void'                            { A.Ret Nothing }
   | 'ret' typeNoVoid operand                { A.Ret (Just ($3 $2)) }
   | 'br' 'label' name                       { A.Br $3 }
@@ -707,10 +719,10 @@ instruction_ :
   | 'indirectbr' tOperand ',' '[' labels ']'
 					    { A.IndirectBr $2 (rev $5) }
   | 'invoke' cconv parameterAttributes callableOperand '(' argumentList ')' fAttributes 'to' 'label' name 'unwind' 'label' name
-                                            { A.Invoke $2 (rev $3) ($4 (map fst (rev $6))) (map snd (rev $6)) (rev $8) $11 $14 }
+                                            { A.Invoke $2 (rev $3) ($4 (map fst (rev $6))) (map snd (rev $6)) (map Right (rev $8)) $11 $14 }
   | 'resume' tOperand                       { A.Resume $2 }
   | 'unreachable'                           { A.Unreachable }
-  | ANTI_INSTR                              {\[] -> A.AntiInstruction $1 }
+  | ANTI_INSTR                              {\[] -> A.AntiInstruction (fromString $1) }
 
 instruction :: { A.Instruction }
 instruction :
@@ -721,17 +733,17 @@ name :: { A.Name }
 name :
     NAMED_LOCAL     { A.Name $1 }
   | UNNAMED_LOCAL   { A.UnName $1 }
-  | ANTI_ID         { A.AntiName $1 }
+  | ANTI_ID         { A.AntiName (fromString $1) }
 
 namedI :: { A.NamedInstruction }
 namedI :
     instruction                     { A.Do $1 }
   | name '=' instruction            { $1 A.:= $3 }
   | ANTI_BB
-      { A.AntiBasicBlock $1 }
+      { A.AntiBasicBlock (fromString $1) }
   | ANTI_BBS
-      { A.AntiBasicBlockList $1 }
-  | ANTI_INSTRS                     { A.AntiInstructionList $1 }
+      { A.AntiBasicBlockList (fromString $1) }
+  | ANTI_INSTRS                     { A.AntiInstructionList (fromString $1) }
 
 elseInstrs :: { [A.LabeledInstruction] }
 elseInstrs :
@@ -767,7 +779,7 @@ mStep :
 
 jumpLabel :: { A.Name }
 jumpLabel :
-    JUMPLABEL           { A.Name $1 }
+    JUMPLABEL           { A.Name (fromString $1) }
   | {- empty -}         { A.NeedsName }
 
 direction :: { A.Direction }
@@ -785,7 +797,7 @@ globalName :: { A.Name }
 globalName :
     NAMED_GLOBAL     { A.Name $1 }
   | UNNAMED_GLOBAL   { A.UnName $1 }
-  | ANTI_GID         { A.AntiName $1 }
+  | ANTI_GID         { A.AntiName (fromString $1) }
 
 addrSpace :: { A.AddrSpace }
 addrSpace :
@@ -806,7 +818,7 @@ typeNoVoid :
   | '[' INT 'x' type ']'      { A.ArrayType (fromIntegral $2) $4 }
   | name                      { A.NamedTypeReference $1 }
   | 'metadata'                { A.MetadataType }
-  | ANTI_TYPE                 { A.AntiType $1 }
+  | ANTI_TYPE                 { A.AntiType (fromString $1) }
 
 type :: { A.Type }
 type :
@@ -868,8 +880,8 @@ cconv :
 parameter :: { A.Parameter }
 parameter :
     type parameterAttributes name { A.Parameter $1 $3 (rev $2) }
-  | ANTI_PARAM                    { A.AntiParameter $1 }
-  | ANTI_PARAMS                   { A.AntiParameterList $1 }
+  | ANTI_PARAM                    { A.AntiParameter (fromString $1) }
+  | ANTI_PARAMS                   { A.AntiParameterList (fromString $1) }
 
 parameterList_ :: { RevList A.Parameter }
 parameterList_ :
@@ -923,15 +935,15 @@ fAttributes :
     {- empty -}                   { RNil }
   | fAttributes fAttribute        { RCons $2 $1 }
 
-section :: { Maybe String }
+section :: { Maybe ShortByteString }
 section :
     {- empty -}         { Nothing }
-  | 'section' STRING    { Just $2 }
+  | 'section' STRING    { Just (fromString $2) }
 
-gc :: { Maybe String }
+gc :: { Maybe ShortByteString }
 gc :
     {- empty -}         { Nothing }
-  | 'gc' STRING         { Just $2 }
+  | 'gc' STRING         { Just (fromString $2) }
 
 isConstant :: { Bool }
 isConstant :
@@ -941,13 +953,13 @@ isConstant :
 global :: { A.Global }
 global :
     'define' linkage visibility cconv parameterAttributes type globalName '(' parameterList ')' fAttributes section alignment gc '{' instructions '}'
-      { A.Function $2 $3 $4 (rev $5) $6 $7 $9 (rev $11) $12 $13 $14 (rev $16) }
+      { A.Function $2 $3 Nothing $4 (rev $5) $6 $7 $9 (map Right $ rev $11) $12 Nothing $13 $14 Nothing (rev $16) Nothing }
   | 'declare' linkage visibility cconv parameterAttributes type globalName '(' parameterListD ')' alignment gc
-      { A.Function $2 $3 $4 (rev $5) $6 $7 $9 [] Nothing $11 $12 [] }
+      { A.Function $2 $3 Nothing $4 (rev $5) $6 $7 $9 [] Nothing Nothing $11 $12 Nothing [] Nothing }
   | globalName '=' linkage visibility isConstant type mConstant alignment
-      { A.GlobalVariable $1 $3 $4 False (A.AddrSpace 0) False $5 $6 ($7 $6) Nothing $8 }
+      { A.GlobalVariable $1 $3 $4 Nothing Nothing Nothing $5 $6 (A.AddrSpace 0) ($7 $6) Nothing Nothing $8 }
   | globalName '=' visibility 'alias' linkage type constant
-      { A.GlobalAlias $1 $5 $3 $6 ($7 $6) }
+      { A.GlobalAlias $1 $5 $3 Nothing Nothing Nothing $6 (A.AddrSpace 0) ($7 $6) }
 
 {------------------------------------------------------------------------------
  -
@@ -955,17 +967,17 @@ global :
  -
  -----------------------------------------------------------------------------}
 
-metadataItem :: { Maybe A.Operand }
+metadataItem :: { Maybe A.Metadata }
 metadataItem :
-    tOperand                    { Just $1 }
+    metadata                    { Just $1 }
   | 'null'                      { Nothing }
 
-metadataList_ :: { RevList (Maybe A.Operand) }
+metadataList_ :: { RevList (Maybe A.Metadata) }
 metadataList_ :
     metadataItem                    { RCons $1 RNil }
   | metadataList_ ',' metadataItem  { RCons $3 $1 }
 
-metadataList :: { RevList (Maybe A.Operand) }
+metadataList :: { RevList (Maybe A.Metadata) }
 metadataList :
     {- empty -}                     { RNil }
   | metadataList_                   { $1 }
@@ -980,9 +992,9 @@ definition :
   | NAMED_META '=' '!' '{' metadataNodeIDs '}'
                    { A.NamedMetadataDefinition $1 (rev $5) }
   | 'module' 'asm' STRING
-                   { A.ModuleInlineAssembly $3 }
-  | ANTI_DEF       { A.AntiDefinition $1 }
-  | ANTI_DEFS      { A.AntiDefinitionList $1 }
+                   { A.ModuleInlineAssembly (fromString $3) }
+  | ANTI_DEF       { A.AntiDefinition (fromString $1) }
+  | ANTI_DEFS      { A.AntiDefinitionList (fromString $1) }
 
 definitions :: { RevList A.Definition }
 definitions :
@@ -999,17 +1011,17 @@ dataLayout :: { Maybe A.DataLayout }
 dataLayout :
     {- empty -}                      { Nothing }
   | 'target' 'datalayout' '=' STRING { Just (dataLayout $4) }
-  | ANTI_DL                          { Just (A.AntiDataLayout $1) }
+  | ANTI_DL                          { Just (A.AntiDataLayout (fromString $1)) }
 
 targetTriple :: { A.TargetTriple }
 targetTriple :
     {- empty -}                       { A.NoTargetTriple }
-  | 'target' 'triple' '=' STRING      { A.TargetTriple $4 }
-  | ANTI_TT                           { A.AntiTargetTriple $1 }
+  | 'target' 'triple' '=' STRING      { A.TargetTriple (fromString $4) }
+  | ANTI_TT                           { A.AntiTargetTriple (fromString $1) }
 
 module :: { A.Module }
 module :
-    dataLayout targetTriple definitions  { A.Module "<string>" $1 $2 (rev $3) }
+    dataLayout targetTriple definitions  { A.Module (fromString "<string>") (fromString "<string>") $1 $2 (rev $3) }
 
 {
 intConstant :: Integer -> A.Type -> A.Constant
@@ -1018,68 +1030,13 @@ intConstant n (A.AntiType bs) = A.IntAntiBs bs n
 intConstant n t = error $ "intConstant: unexpected type " ++ show t
 
 floatConstant :: Rational -> A.Type -> A.Constant
-floatConstant x (A.FloatingPointType 32 _) = A.Float (A.Single (fromRational x))
-floatConstant x (A.FloatingPointType 64 _) = A.Float (A.Double (fromRational x))
+floatConstant x (A.FloatingPointType LA.FloatFP) = A.Float (A.Single (fromRational x))
+floatConstant x (A.FloatingPointType LA.DoubleFP) = A.Float (A.Double (fromRational x))
 
 dataLayout :: String -> A.DataLayout
-dataLayout s = A.DataLayout endianness stackAlignment pointerLayouts typeLayouts nativeSizes
- where
-  infos :: [String]
-  infos = splitOn "-" s
-  endianness :: Maybe A.Endianness
-  endianness = listToMaybe $ do
-    [c] <- infos
-    case c of
-      'E' -> return A.BigEndian
-      'e' -> return A.LittleEndian
-      _   -> []
-  stackAlignment :: Maybe Word32
-  stackAlignment = listToMaybe $ do
-    ('S':s) <- infos
-    (n,"") <- reads s
-    return n
-  pointerLayouts :: M.Map A.AddrSpace (Word32, A.AlignmentInfo)
-  pointerLayouts = M.fromList $ do
-    ('p':s@(x:_)) <- infos
-    let parts = splitOn ":" s
-    (n,size,abi,pref) <- case parts of
-      ("":size:abi:pref) -> return (0,size,abi,pref)
-      (s:size:abi:pref) -> do
-        (n,"") <- reads s
-        return (n,size,abi,pref)
-      _ -> []
-    (size',"") <- reads size
-    (abi',"") <- reads abi
-    pref' <- case pref of
-      [p] -> do
-        (pref',"") <- reads p
-        return $ Just pref'
-      _ -> return Nothing
-    return (A.AddrSpace n, (size', A.AlignmentInfo abi' pref'))
-  typeLayouts :: M.Map (A.AlignType, Word32) A.AlignmentInfo
-  typeLayouts = M.fromList $ do
-    ((t:size):abi:pref) <- map (splitOn ":") infos
-    k <- case t of
-      'i' -> reads size >>= \(size,"") -> return (A.IntegerAlign, size)
-      'v' -> reads size >>= \(size,"") -> return (A.VectorAlign, size)
-      'f' -> reads size >>= \(size,"") -> return (A.FloatAlign, size)
-      _ -> []
-    (abi',"") <- reads abi
-    pref' <- case pref of
-      [p] -> do
-        (pref',"") <- reads p
-        return $ Just pref'
-    return (k, A.AlignmentInfo abi' pref')
-  nativeSizes :: Maybe (S.Set Word32)
-  nativeSizes = do
-    let sizes = do
-          ('n':s) <- infos
-          size <- splitOn ":" s
-          (size',"") <- reads size
-          return size'
-    case sizes of
-      [] -> Nothing
-      xs -> Just $ S.fromList xs
+dataLayout s =
+  case runExcept (A.parseDataLayout A.BigEndian (BS.pack s)) of
+    Right (Just d) -> A.DataLayout d
 
 happyError :: L T.Token -> P a
 happyError (L loc t) =

@@ -15,7 +15,6 @@ module LLVM.Quote.LLVM (
     -}
 ) where
 
-import Language.Haskell.TH.Quote (QuasiQuoter)
 import LLVM.Quote.Base (CodeGen, quasiquote, quasiquoteM, TQuasiQuoter(unTQuasiQuoter))
 import qualified LLVM.Quote.AST as A
 import qualified LLVM.AST as L

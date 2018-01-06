@@ -101,6 +101,8 @@ data Token
   | Tsection
   | Tgc
   | Ttail
+  | Tmusttail
+  | Tnotail
   -- Finalizer
   | Tret
   | Tbr
