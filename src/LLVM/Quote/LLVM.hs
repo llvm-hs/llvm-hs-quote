@@ -1,5 +1,4 @@
 module LLVM.Quote.LLVM (
-    {-
     llmod,
     lldef,
     llg,
@@ -12,18 +11,17 @@ module LLVM.Quote.LLVM (
     -- llbbM,
     -- llbbsM,
     lliM
-    -}
 ) where
 
 import LLVM.Quote.Base (CodeGen, quasiquote, quasiquoteM, TQuasiQuoter(unTQuasiQuoter))
 import qualified LLVM.Quote.AST as A
+import qualified LLVM.Quote.Parser.Parser as P
 import qualified LLVM.AST as L
+
+import Language.Haskell.TH.Quote
 
 exts :: [A.Extensions]
 exts = [A.Loops]
-
-{-
-import qualified LLVM.Quote.Parser.Parser as P
 
 -- | Quasiquoter for 'LLVM.AST.Module'
 llmod :: QuasiQuoter
@@ -63,4 +61,3 @@ llgM = unTQuasiQuoter (quasiquoteM exts P.parseGlobal :: TQuasiQuoter (CodeGen L
 lliM :: QuasiQuoter
 lliM = unTQuasiQuoter
         (quasiquoteM exts P.parseInstruction :: TQuasiQuoter (CodeGen L.Instruction))
--}
