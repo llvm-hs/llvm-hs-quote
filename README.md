@@ -3,11 +3,7 @@ llvm-hs-quote
 
 [![Build Status](https://travis-ci.org/llvm-hs/llvm-hs-quote.svg?branch=master)](https://travis-ci.org/llvm-hs/llvm-hs-quote)
 
-**Initial fork of
-[`llvm-general-quote`](https://github.com/tvh/llvm-general-quote/issues/6) to
-support the modern `llvm-hs` family of libraries.**
-
-`llvm-hs-quote` is a quasiquoting-library for llvm-general.  It aims to support
+`llvm-hs-quote` is a quasiquoting-library for llvm-hs.  It aims to support
 all language constructs of LLVM.
 
 `llvm-hs-quote` provides both quasiquotes and antiquotes. The following trivial
