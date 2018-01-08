@@ -55,8 +55,10 @@ import qualified LLVM.AST.DLL as DLL
 import qualified LLVM.AST.Global as G
 
 import Data.Char (chr)
+import Data.String
 import Data.ByteString.Short as BS
 import Language.Haskell.TH.Syntax (Lift(..))
+import Language.Haskell.TH.Lib (appE, varE)
 import Instances.TH.Lift()
 
 data Extensions
@@ -733,7 +735,7 @@ deriving instance Lift A.TailCallKind
 deriving instance Lift A.DataLayout
 
 instance Lift ShortByteString where
-  lift b = [| fromString $(lift (unpack' b)) |]
+  lift b = appE (varE 'fromString) (lift (unpack' b))
     where
       unpack' :: BS.ShortByteString -> [Char]
       unpack' x = fmap (chr . fromIntegral) (BS.unpack x)

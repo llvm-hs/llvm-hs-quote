@@ -1,9 +1,8 @@
 {-# LANGUAGE  QuasiQuotes #-}
-module LLVM.General.Quote.Test.Constants where
+module LLVM.Quote.Test.Constants where
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.HUnit
 
 import Control.Monad
 import Data.Functor
@@ -11,20 +10,33 @@ import Data.Maybe
 import Foreign.Ptr
 import Data.Word
 
-import LLVM.General.Quote.LLVM
+import LLVM.Quote.LLVM
+import LLVM.Quote.LLVM
 
-import LLVM.General.AST
-import LLVM.General.AST.Type
-import LLVM.General.AST.Name
-import LLVM.General.AST.AddrSpace
-import qualified LLVM.General.AST.Linkage as L
-import qualified LLVM.General.AST.Visibility as V
-import qualified LLVM.General.AST.CallingConvention as CC
-import qualified LLVM.General.AST.Attribute as A
-import qualified LLVM.General.AST.Global as G
-import qualified LLVM.General.AST.Constant as C
-import qualified LLVM.General.AST.Float as F
-import qualified LLVM.General.AST.IntegerPredicate as IPred
+import LLVM.AST
+import LLVM.AST
+import LLVM.AST.Type
+import LLVM.AST.Type
+import LLVM.AST.Name
+import LLVM.AST.Name
+import LLVM.AST.AddrSpace
+import LLVM.AST.AddrSpace
+import qualified LLVM.AST.Linkage as L
+import qualified LLVM.AST.Linkage as L
+import qualified LLVM.AST.Visibility as V
+import qualified LLVM.AST.Visibility as V
+import qualified LLVM.AST.CallingConvention as CC
+import qualified LLVM.AST.CallingConvention as CC
+import qualified LLVM.AST.Attribute as A
+import qualified LLVM.AST.Attribute as A
+import qualified LLVM.AST.Global as G
+import qualified LLVM.AST.Global as G
+import qualified LLVM.AST.Constant as C
+import qualified LLVM.AST.Constant as C
+import qualified LLVM.AST.Float as F
+import qualified LLVM.AST.Float as F
+import qualified LLVM.AST.IntegerPredicate as IPred
+import qualified LLVM.AST.IntegerPredicate as IPred
 
 tests = testGroup "Constants" [
   testCase name $ mASTQ @?= mAST
@@ -51,12 +63,12 @@ tests = testGroup "Constants" [
       [lldef|@0 = global i65 -1|]
     ), (
       "float",
-      FloatingPointType 32 IEEE,
+      FloatingPointType FloatFP,
       C.Float (F.Single 1),
       [lldef|@0 = global float 1.000000e+00|]
     ), (
       "double",
-      FloatingPointType 64 IEEE,
+      FloatingPointType DoubleFP,
       C.Float (F.Double 1),
       [lldef|@0 = global double 1.000000e+00|]
     ), (

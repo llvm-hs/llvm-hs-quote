@@ -1,23 +1,31 @@
-{-# LANGUAGE  QuasiQuotes #-}
-module LLVM.General.Quote.Test.InlineAssembly where
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+module LLVM.Quote.Test.InlineAssembly where
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.HUnit
 
-import LLVM.General.Quote.LLVM
+import LLVM.Quote.LLVM
+import LLVM.Quote.LLVM
 
-import LLVM.General.AST
-import LLVM.General.AST.InlineAssembly as IA
-import qualified LLVM.General.AST.Linkage as L
-import qualified LLVM.General.AST.Visibility as V
-import qualified LLVM.General.AST.CallingConvention as CC
-import qualified LLVM.General.AST.Constant as C
-import qualified LLVM.General.AST.Global as G
+import LLVM.AST
+import LLVM.AST
+import LLVM.AST.InlineAssembly as IA
+import LLVM.AST.InlineAssembly as IA
+import qualified LLVM.AST.Linkage as L
+import qualified LLVM.AST.Linkage as L
+import qualified LLVM.AST.Visibility as V
+import qualified LLVM.AST.Visibility as V
+import qualified LLVM.AST.CallingConvention as CC
+import qualified LLVM.AST.CallingConvention as CC
+import qualified LLVM.AST.Constant as C
+import qualified LLVM.AST.Constant as C
+import qualified LLVM.AST.Global as G
+import qualified LLVM.AST.Global as G
 
 tests = testGroup "InlineAssembly" [
   testCase "expression" $ do
-    let ast = Module "<string>" Nothing Nothing [
+    let ast = Module "<string>" "<string>" Nothing Nothing [
                 GlobalDefinition $
                   functionDefaults {
                     G.returnType = IntegerType 32,
@@ -26,7 +34,7 @@ tests = testGroup "InlineAssembly" [
                     G.basicBlocks = [
                       BasicBlock (Name "entry") [
                         UnName 0 := Call {
-                          isTailCall = False,
+                          tailCallKind = Nothing,
                           callingConvention = CC.C,
                           returnAttributes = [],
                           function = Left $ InlineAssembly {
@@ -38,13 +46,13 @@ tests = testGroup "InlineAssembly" [
                                        dialect = ATTDialect
                                      },
                           arguments = [
-                            (LocalReference (Name "x"), [])
+                            (LocalReference (IntegerType 32) (Name "x"), [])
                            ],
                           functionAttributes = [],
                           metadata = []
                         }
                       ] (
-                        Do $ Ret (Just (LocalReference (UnName 0))) []
+                        Do $ Ret (Just (LocalReference (IntegerType 32) (UnName 0))) []
                       )
                     ]
                 }
@@ -60,7 +68,7 @@ tests = testGroup "InlineAssembly" [
     s @?= ast,
 
   testCase "module" $ do
-    let ast = Module "<string>" Nothing Nothing [
+    let ast = Module "<string>" "<string>" Nothing Nothing [
                 ModuleInlineAssembly "foo",
                 ModuleInlineAssembly "bar",
                 GlobalDefinition $ globalVariableDefaults {

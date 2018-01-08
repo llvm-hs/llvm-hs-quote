@@ -1,22 +1,24 @@
-{-# LANGUAGE  QuasiQuotes #-}
-module LLVM.General.Quote.Test.Metadata where
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+module LLVM.Quote.Test.Metadata where
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.HUnit hiding ((@?=))
 
-import LLVM.General.Quote.LLVM
+import LLVM.Quote.LLVM
+import LLVM.Quote.LLVM
 
-import LLVM.General.AST as A
-import qualified LLVM.General.AST.Linkage as L
-import qualified LLVM.General.AST.Visibility as V
-import qualified LLVM.General.AST.CallingConvention as CC
-import qualified LLVM.General.AST.Constant as C
-import LLVM.General.AST.Global as G
+import LLVM.AST as A
+import LLVM.AST.Type
+import qualified LLVM.AST.Linkage as L
+import qualified LLVM.AST.Visibility as V
+import qualified LLVM.AST.CallingConvention as CC
+import qualified LLVM.AST.Constant as C
+import LLVM.AST.Global as G
 
 tests = testGroup "Metadata" [
   testCase "local" $ do
-    let ast = Module "<string>" Nothing Nothing [
+    let ast = Module "<string>" "<string>" Nothing Nothing [
           GlobalDefinition $ globalVariableDefaults { G.name = UnName 0, G.type' = IntegerType 32 },
           GlobalDefinition $ functionDefaults {
             G.returnType = IntegerType 32,
@@ -25,7 +27,7 @@ tests = testGroup "Metadata" [
               BasicBlock (Name "entry") [
                  UnName 0 := Load {
                             volatile = False,
-                            address = ConstantOperand (C.GlobalReference (UnName 0)),
+                            address = ConstantOperand (C.GlobalReference (ptr i32) (UnName 0)),
                             maybeAtomicity = Nothing,
                             A.alignment = 0,
                             metadata = []
@@ -35,8 +37,7 @@ tests = testGroup "Metadata" [
                    (
                      "my-metadatum",
                      MetadataNode [
-                      Just $ LocalReference (UnName 0),
-                      Just $ MetadataStringOperand "super hyper",
+                      Just $ MDString "super hyper",
                       Nothing
                      ]
                    )
@@ -52,12 +53,12 @@ tests = testGroup "Metadata" [
             define i32 @foo() {
             entry:
               %0 = load i32* @0
-              ret i32 0, !my-metadatum !{i32 %0, metadata !"super hyper", null}
+              ret i32 0
             }|]
     s @?= ast,
 
   testCase "global" $ do
-    let ast = Module "<string>" Nothing Nothing [
+    let ast = Module "<string>" "<string>" Nothing Nothing [
           GlobalDefinition $ functionDefaults {
             G.returnType = IntegerType 32,
             G.name = Name "foo",
@@ -70,22 +71,21 @@ tests = testGroup "Metadata" [
               )
              ]
             },
-          MetadataNodeDefinition (MetadataNodeID 0) [ Just $ ConstantOperand (C.Int 32 1) ]
+          MetadataNodeDefinition (MetadataNodeID 0) [ Just . MDValue $ ConstantOperand (C.Int 32 1) ]
          ]
     let s = [llmod|; ModuleID = '<string>'
 
             define i32 @foo() {
             entry:
-              ret i32 0, !my-metadatum !0
+              ret i32 0
             }
-
-            !0 = metadata !{i32 1}|]
+            |]
     s @?= ast,
 
   testCase "named" $ do
-    let ast = Module "<string>" Nothing Nothing [
+    let ast = Module "<string>" "<string>" Nothing Nothing [
           NamedMetadataDefinition "my-module-metadata" [ MetadataNodeID 0 ],
-          MetadataNodeDefinition (MetadataNodeID 0) [ Just $ ConstantOperand (C.Int 32 1) ]
+          MetadataNodeDefinition (MetadataNodeID 0) [ Just . MDValue $ ConstantOperand (C.Int 32 1) ]
          ]
     let s = [llmod|; ModuleID = '<string>'
 
@@ -95,7 +95,7 @@ tests = testGroup "Metadata" [
     s @?= ast,
 
   testCase "null" $ do
-    let ast = Module "<string>" Nothing Nothing [
+    let ast = Module "<string>" "<string>" Nothing Nothing [
           NamedMetadataDefinition "my-module-metadata" [ MetadataNodeID 0 ],
           MetadataNodeDefinition (MetadataNodeID 0) [ Nothing ]
          ]
@@ -108,13 +108,13 @@ tests = testGroup "Metadata" [
 
   testGroup "cyclic" [
     testCase "metadata-only" $ do
-      let ast = Module "<string>" Nothing Nothing [
+      let ast = Module "<string>" "<string>" Nothing Nothing [
             NamedMetadataDefinition "my-module-metadata" [MetadataNodeID 0],
             MetadataNodeDefinition (MetadataNodeID 0) [
-              Just $ MetadataNodeOperand (MetadataNodeReference (MetadataNodeID 1))
+              Just . MDNode $ MetadataNodeReference (MetadataNodeID 1)
              ],
             MetadataNodeDefinition (MetadataNodeID 1) [
-              Just $ MetadataNodeOperand (MetadataNodeReference (MetadataNodeID 0))
+              Just . MDNode $ MetadataNodeReference (MetadataNodeID 0)
              ]
            ]
       let s = [llmod|; ModuleID = '<string>'
@@ -126,7 +126,7 @@ tests = testGroup "Metadata" [
       s @?= ast,
 
     testCase "metadata-global" $ do
-      let ast = Module "<string>" Nothing Nothing [
+      let ast = Module "<string>" "<string>" Nothing Nothing [
             GlobalDefinition $ functionDefaults {
               G.returnType = VoidType,
               G.name = Name "foo",
@@ -138,7 +138,7 @@ tests = testGroup "Metadata" [
                ]
              },
             MetadataNodeDefinition (MetadataNodeID 0) [
-              Just $ ConstantOperand (C.GlobalReference (Name "foo"))
+              Just . MDValue $ ConstantOperand (C.GlobalReference (ptr (FunctionType void [] False)) (Name "foo"))
              ]
            ]
       let s = [llmod|; ModuleID = '<string>'

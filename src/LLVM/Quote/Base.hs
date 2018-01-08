@@ -280,8 +280,8 @@ qqDefinitionE (A.GlobalDefinition v) =
     [||L.GlobalDefinition <$> $$(qqExpM v)||]
 qqDefinitionE (A.TypeDefinition n v) =
     [||L.TypeDefinition <$> $$(qqExpM n) <*> $$(qqExpM v)||]
--- qqDefinitionE (A.MetadataNodeDefinition i vs) =
---     [||L.MetadataNodeDefinition <$> $$(qqExpM i) <*> $$(qqExpM vs)||]
+qqDefinitionE (A.MetadataNodeDefinition i vs) =
+    [||L.MetadataNodeDefinition <$> $$(qqExpM i) <*> $$(qqExpM vs)||]
 qqDefinitionE (A.NamedMetadataDefinition i vs) =
     [||L.NamedMetadataDefinition <$> $$(qqExpM i) <*> $$(qqExpM vs)||]
 qqDefinitionE (A.ModuleInlineAssembly s) =
@@ -658,6 +658,10 @@ qqMetadataNodeE (A.MetadataNodeReference x1) =
 qqMetadata :: Conversion A.Metadata L.Metadata
 qqMetadata (A.MDString s) =
   [||L.MDString <$> $$(qqExpM s)||]
+qqMetadata (A.MDValue v) =
+  [||L.MDValue <$> $$(qqExpM v)||]
+qqMetadata (A.MDNode n) =
+  [||L.MDNode <$> $$(qqExpM n)||]
 
 qqOperandE :: Conversion A.Operand L.Operand
 qqOperandE (A.LocalReference x1 x2) =

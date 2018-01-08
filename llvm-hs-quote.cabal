@@ -52,3 +52,22 @@ library
   build-tools:         alex, happy
   hs-source-dirs: src
   default-language:    Haskell2010
+
+test-suite test
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            test.hs
+  other-modules:      LLVM.Quote.Test.Tests
+                      LLVM.Quote.Test.Constants
+                      LLVM.Quote.Test.DataLayout
+                      LLVM.Quote.Test.InlineAssembly
+                      LLVM.Quote.Test.Instructions
+                      LLVM.Quote.Test.Loops
+                      LLVM.Quote.Test.Metadata
+  build-depends:      base
+                    , containers
+                    , llvm-hs-pure
+                    , llvm-hs-quote
+                    , tasty
+                    , tasty-hunit
+  default-language:   Haskell2010

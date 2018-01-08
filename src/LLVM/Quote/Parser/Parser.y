@@ -616,6 +616,7 @@ labels :
 metadata :: { A.Metadata }
 metadata :
     metadataNode { A.MDNode $1 }
+  | tOperand     { A.MDValue $1 }
   | '!' STRING   { A.MDString (fromString $2) }
 
 metadataNodeID :: { A.MetadataNodeID }
