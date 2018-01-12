@@ -6,7 +6,6 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import LLVM.Quote.LLVM
-import LLVM.Quote.LLVM
 
 import LLVM.AST as A
 import LLVM.AST.Type
@@ -16,6 +15,7 @@ import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Constant as C
 import LLVM.AST.Global as G
 
+tests :: TestTree
 tests = testGroup "Metadata" [
   testCase "local" $ do
     let ast = Module "<string>" "<string>" Nothing Nothing [
@@ -25,7 +25,7 @@ tests = testGroup "Metadata" [
             G.name = Name "foo",
             G.basicBlocks = [
               BasicBlock (Name "entry") [
-                 UnName 0 := Load {
+                 Name "v0.1" := Load {
                             volatile = False,
                             address = ConstantOperand (C.GlobalReference (ptr i32) (UnName 0)),
                             maybeAtomicity = Nothing,
@@ -37,8 +37,7 @@ tests = testGroup "Metadata" [
                    (
                      "my-metadatum",
                      MetadataNode [
-                      Just $ MDString "super hyper",
-                      Nothing
+                      Just $ MDString "super hyper"
                      ]
                    )
                  ]
@@ -53,7 +52,7 @@ tests = testGroup "Metadata" [
             define i32 @foo() {
             entry:
               %0 = load i32* @0
-              ret i32 0
+              ret i32 0, !my-metadatum !{!"super hyper"}
             }|]
     s @?= ast,
 
@@ -77,8 +76,10 @@ tests = testGroup "Metadata" [
 
             define i32 @foo() {
             entry:
-              ret i32 0
+              ret i32 0, !my-metadatum !0
             }
+
+            !0 = metadata !{i32 1}
             |]
     s @?= ast,
 
@@ -121,8 +122,8 @@ tests = testGroup "Metadata" [
 
               !my-module-metadata = !{!0}
 
-              !0 = metadata !{metadata !1}
-              !1 = metadata !{metadata !0}|]
+              !0 = metadata !{!1}
+              !1 = metadata !{!0}|]
       s @?= ast,
 
     testCase "metadata-global" $ do

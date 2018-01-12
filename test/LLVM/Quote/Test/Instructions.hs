@@ -6,24 +6,15 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import LLVM.Quote.LLVM
-import LLVM.Quote.LLVM
 
 import LLVM.AST
-import LLVM.AST
-import LLVM.AST.AddrSpace
 import LLVM.AST.AddrSpace
 import LLVM.AST.Type
 import qualified LLVM.AST.IntegerPredicate as IPred
-import qualified LLVM.AST.IntegerPredicate as IPred
-import qualified LLVM.AST.FloatingPointPredicate as FPPred
 import qualified LLVM.AST.FloatingPointPredicate as FPPred
 import qualified LLVM.AST.CallingConvention as CC
-import qualified LLVM.AST.CallingConvention as CC
-import qualified LLVM.AST.Global as G
 import qualified LLVM.AST.Global as G
 import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.RMWOperation as RMWOp
 import qualified LLVM.AST.RMWOperation as RMWOp
 
 tests :: TestTree
@@ -717,7 +708,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
           G.name = Name "foo",
           G.basicBlocks = [
             BasicBlock (Name "entry") [
-              UnName 0 := Load {
+              Name "v0.1" := Load {
                        volatile = False,
                        address = ConstantOperand (C.GlobalReference (ptr (ptr i8)) (UnName 0)),
                        maybeAtomicity = Nothing,
@@ -726,7 +717,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
                      }
             ] (
               Do $ IndirectBr {
-                operand0' = LocalReference (ptr i8) (UnName 0),
+                operand0' = LocalReference (ptr i8) (Name "v0.1"),
                 possibleDests = [Name "end"],
                 metadata' = []
              }
@@ -780,7 +771,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
               Do $ Ret Nothing []
              ),
             BasicBlock (Name "bar") [
-             UnName 0 := LandingPad {
+             Name "v0.1" := LandingPad {
                type' = StructureType False [
                   PointerType (IntegerType 8) (AddrSpace 0),
                   IntegerType 32

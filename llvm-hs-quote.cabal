@@ -56,7 +56,7 @@ library
 test-suite test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
-  main-is:            test.hs
+  main-is:            Test.hs
   other-modules:      LLVM.Quote.Test.Tests
                       LLVM.Quote.Test.Constants
                       LLVM.Quote.Test.DataLayout
@@ -70,4 +70,5 @@ test-suite test
                     , llvm-hs-quote
                     , tasty
                     , tasty-hunit
+                    , bytestring
   default-language:   Haskell2010

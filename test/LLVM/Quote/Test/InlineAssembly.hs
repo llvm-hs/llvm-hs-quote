@@ -1,28 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+
 module LLVM.Quote.Test.InlineAssembly where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 
 import LLVM.Quote.LLVM
-import LLVM.Quote.LLVM
 
 import LLVM.AST
-import LLVM.AST
-import LLVM.AST.InlineAssembly as IA
 import LLVM.AST.InlineAssembly as IA
 import qualified LLVM.AST.Linkage as L
-import qualified LLVM.AST.Linkage as L
-import qualified LLVM.AST.Visibility as V
 import qualified LLVM.AST.Visibility as V
 import qualified LLVM.AST.CallingConvention as CC
-import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Global as G
 import qualified LLVM.AST.Global as G
 
+tests :: TestTree
 tests = testGroup "InlineAssembly" [
   testCase "expression" $ do
     let ast = Module "<string>" "<string>" Nothing Nothing [
@@ -33,7 +27,7 @@ tests = testGroup "InlineAssembly" [
                     G.parameters = ([Parameter (IntegerType 32) (Name "x") []],False),
                     G.basicBlocks = [
                       BasicBlock (Name "entry") [
-                        UnName 0 := Call {
+                        Name "v0.1" := Call {
                           tailCallKind = Nothing,
                           callingConvention = CC.C,
                           returnAttributes = [],
@@ -52,7 +46,7 @@ tests = testGroup "InlineAssembly" [
                           metadata = []
                         }
                       ] (
-                        Do $ Ret (Just (LocalReference (IntegerType 32) (UnName 0))) []
+                        Do $ Ret (Just (LocalReference (IntegerType 32) (Name "v0.1"))) []
                       )
                     ]
                 }

@@ -2,24 +2,15 @@
 module LLVM.Quote.Test.Loops where
 
 import Test.Tasty
-import Test.Tasty.HUnit
 
-import LLVM.Quote.LLVM
 import LLVM.Quote.LLVM
 
 import LLVM.AST
-import LLVM.AST
-import qualified LLVM.AST.Linkage as L
 import qualified LLVM.AST.Linkage as L
 import qualified LLVM.AST.Visibility as V
-import qualified LLVM.AST.Visibility as V
-import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Global as G
-import qualified LLVM.AST.Global as G
 import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.IntegerPredicate as IPred
 import qualified LLVM.AST.IntegerPredicate as IPred
 
 tests :: TestTree
