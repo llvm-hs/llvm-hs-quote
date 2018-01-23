@@ -645,6 +645,7 @@ qqNamedInstructionE (A.AntiBasicBlock v)
 qqNamedInstructionE (A.AntiBasicBlockList v)
   = unsafeTExpCoerce $ [|toBasicBlockList $(antiVarE v)|]
 
+-- XXX: not actually used. Dead code?
 qqMetadataNodeIDE :: Conversion A.MetadataNodeID L.MetadataNodeID
 qqMetadataNodeIDE (A.MetadataNodeID x1) =
   [||L.MetadataNodeID <$> $$(qqExpM x1)||]

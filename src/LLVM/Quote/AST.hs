@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveLift #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -716,6 +717,7 @@ instance Lift Operand where
   lift (LocalReference ty n) = [| LocalReference ty n |]
   lift (ConstantOperand c) = [| ConstantOperand c |]
   lift (MetadataOperand md) = [| MetadataOperand md |]
+  lift (AntiOperand o) = [| o |]
 instance Lift Metadata where
   lift (MDString s) = [| MDString s |]
   lift (MDNode node) = [| MDNode node |]
@@ -739,57 +741,3 @@ instance Lift ShortByteString where
     where
       unpack' :: BS.ShortByteString -> [Char]
       unpack' x = fmap (chr . fromIntegral) (BS.unpack x)
-
-{-$(deriveLiftMany [''A.Visibility,-}
-                  {-''A.Linkage,-}
-                  {-''A.ParameterAttribute,-}
-                  {-''Global,-}
-                  {-''Constant,-}
-                  {-''A.AddrSpace,-}
-                  {-''A.CallingConvention,-}
-                  {-''A.FunctionAttribute,-}
-                  {-''A.SomeFloat,-}
-                  {-''AI.IntegerPredicate,-}
-                  {-''AF.FloatingPointPredicate,-}
-                  {-''Direction,-}
-                  {-''Parameter,-}
-                  {-''NamedInstruction,-}
-                  {-''LabeledInstruction,-}
-                  {-''Instruction,-}
-                  {-''A.SynchronizationScope,-}
-                  {-''InlineAssembly,-}
-                  {-''A.Dialect,-}
-                  {-''A.RMWOperation,-}
-                  {-''A.Atomicity,-}
-                  {-''LandingPadClause,-}
-                  {-''A.MemoryOrdering,-}
-                  {-''Name,-}
-                  {-''MetadataNode,-}
-                  {-''MetadataNodeID,-}
-                  {-''Operand,-}
-                  {-''Type,-}
-                  {-''A.FloatingPointType,-}
-                  {-''DataLayout,-}
-                  {-''A.Endianness,-}
-                  {-''M.Map,-}
-                  {-''A.AlignType,-}
-                  {-''A.AlignmentInfo,-}
-                  {-''S.Set,-}
-                  {-''Definition,-}
-                  {-''Module,-}
-                  {-''TargetTriple,-}
-                  {-''FastMathFlags-}
-                  {-])-}
-
-{-instance Lift Word64 where-}
-  {-lift = lift . toInteger-}
-{-instance Lift Word32 where-}
-  {-lift = lift . toInteger-}
-{-instance Lift Word16 where-}
-  {-lift = lift . toInteger-}
-{-instance Lift Word where-}
-  {-lift = lift . toInteger-}
-{-instance Lift Float where-}
-  {-lift = lift . toRational-}
-{-instance Lift Double where-}
-  {-lift = lift . toRational-}
