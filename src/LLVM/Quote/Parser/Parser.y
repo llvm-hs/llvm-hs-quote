@@ -351,8 +351,8 @@ operand :: { A.Type -> A.Operand }
 operand :
     fConstant           { A.ConstantOperand . $1 }
   | name                { \t -> A.LocalReference t $1 }
-  | metadata            { \A.MetadataType -> A.MetadataOperand $1 }
   | cOperand            { \_ -> $1 }
+  | metadata            { \A.MetadataType -> A.MetadataOperand $1 }
 
 mOperand :: { Maybe A.Operand }
 mOperand :
@@ -546,7 +546,7 @@ parameterAttributes :
 
 argument :: { (A.Type, (A.Operand, [A.ParameterAttribute])) }
 argument :
-    type parameterAttributes operand      { ($1, ($3 $1, rev $2)) }
+    type parameterAttributes coperand      { ($1, ($3 $1, rev $2)) }
 
 argumentList_ :: { RevList (A.Type, (A.Operand, [A.ParameterAttribute])) }
 argumentList_ :
@@ -575,9 +575,16 @@ dialect :
 
 callableOperand :: { [A.Type] -> A.CallableOperand }
 callableOperand :
-    type operand       { \ts -> Right ($2 (A.FunctionType $1 ts False)) }
+    type coperand       { \ts -> Right ($2 (A.FunctionType $1 ts False)) }
   | type 'asm' sideeffect alignstack dialect STRING ',' STRING
                        { \ts -> Left (A.InlineAssembly (A.FunctionType $1 ts False) (fromString $6) (fromString $8) $3 $4 $5) }
+
+coperand :: { A.Type -> A.Operand }
+coperand :
+    fConstant           { A.ConstantOperand . $1 }
+  | name                { \t -> A.LocalReference t $1 }
+  | ANTI_OPR            { \t -> A.AntiOperand (fromString $1) }
+  | cOperand            { \_ -> $1 }
 
 tail :: { Maybe A.TailCallKind }
 tail :

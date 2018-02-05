@@ -17,6 +17,9 @@ import qualified LLVM.AST.Global as G
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.RMWOperation as RMWOp
 
+instruction :: Type -> Operand -> Instruction
+instruction ty op = [lli| call void @dummy_fuc($type:ty $opr:op) |]
+
 tests :: TestTree
 tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
   testGroup "regular" [
