@@ -41,8 +41,10 @@ AST Type                             | Quasiquoter | Antiquoter
 `LLVM.AST.Parameter`                 |             | `$param:`
 `[LLVM.AST.Parameter]`               |             | `$params:`
 
-Example
--------
+Examples
+--------
+
+### Module Quasiquoter
 
 ```haskell
 {-# LANGUAGE QuasiQuotes #-}
@@ -66,6 +68,20 @@ entry:
   store i32 %x, i32* %x.addr
   ret i32 1001
 }
+|]
+```
+
+### Instruction Antiquotes
+
+```haskell
+example :: Either AST.Instruction AST.Terminator -> AST.Module
+example instructionOrTerminator = [Quote.LLVM.llmod|
+  ; ModuleID = 'simple module'
+  define i32 @myfunc(){
+  entry:
+    $instr:instructionOrTerminator
+    ret i32 0
+  }
 |]
 ```
 
