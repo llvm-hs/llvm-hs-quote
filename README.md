@@ -29,6 +29,7 @@ AST Type                             | Quasiquoter | Antiquoter
 `LLVM.AST.Global`                    | `llg`       |
 `LLVM.AST.Instruction.Instruction`   | `lli`       | `$instr:`
 `[LLVM.AST.Instruction.Instruction]` |             | `$instrs:`
+`LLVM.AST.Instruction.Terminator`    | `llt`       | `$instr:`
 `LLVM.AST.DataLayout.DataLayout`     |             | `$dl:`
 `LLVM.Quote.AST.TargetTriple`        |             | `$tt:`
 `LLVM.AST.BasicBlock`                |             | `$bb:`
