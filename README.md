@@ -50,16 +50,12 @@ Examples
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Example where
-
-import LLVM.Prelude
 import LLVM.AST as AST
-import LLVM.AST.Name as AST
 import LLVM.Quote.LLVM as Q
-import Data.String (fromString)
 
-example :: AST.Module
-example = [Q.llmod|
+-- | Module quotation
+example1 :: AST.Module
+example1 = [Q.llmod|
 ; ModuleID = 'simple module'
 
 define i32 @foo(i32 %x) {
@@ -74,8 +70,9 @@ entry:
 ### Instruction Antiquotes
 
 ```haskell
-example :: Either AST.Instruction AST.Terminator -> AST.Module
-example instructionOrTerminator = [Quote.LLVM.llmod|
+-- | Instruction antiquotation
+example2 :: Either AST.Instruction AST.Terminator -> AST.Module
+example2 instructionOrTerminator = [Q.llmod|
   ; ModuleID = 'simple module'
   define i32 @myfunc(){
   entry:
@@ -83,6 +80,22 @@ example instructionOrTerminator = [Quote.LLVM.llmod|
     ret i32 0
   }
 |]
+```
+
+### Instruction Quotation
+
+```haskell
+-- | Instruction quotation
+example3 :: AST.Type -> AST.Instruction
+example3 t = [Q.lli|alloca $type:t|]
+```
+
+### Definition Quotation
+
+```haskell
+-- | Definition quotation
+example4 :: AST.Definition
+example4 = [Q.lldef|@0 = global i32 1|]
 ```
 
 License
