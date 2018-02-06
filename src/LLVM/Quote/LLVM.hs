@@ -5,6 +5,7 @@ module LLVM.Quote.LLVM (
     -- llbb,
     -- llbbs,
     lli,
+    llt,
     llmodM,
     lldefM,
     llgM,
@@ -42,6 +43,10 @@ lli :: QuasiQuoter
 lli = unTQuasiQuoter
         (quasiquote exts P.parseInstruction :: TQuasiQuoter L.Instruction)
 
+-- | Quasiquoter for 'LLVM.AST.Instruction.Terminator
+llt :: QuasiQuoter
+llt = unTQuasiQuoter
+        (quasiquote exts P.parseTerminator :: TQuasiQuoter L.Terminator)
 
 -- | Quasiquoter for 'LLVM.AST.Module'
 llmodM :: QuasiQuoter

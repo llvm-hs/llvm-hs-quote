@@ -279,6 +279,7 @@ import qualified LLVM.DataLayout as A
 %name parseDefinition   definition
 %name parseGlobal       global
 %name parseInstruction  instruction
+%name parseTerminator   instruction
 
 %%
 

@@ -242,6 +242,11 @@ instance QQExp A.Instruction L.Instruction where
                     case x1' :: Either L.Instruction L.Terminator of
                       Left  x1'' -> return x1''
                       Right x1'' -> fail $ show x1'' ++ " is no Instruction"||]
+instance QQExp A.Instruction L.Terminator where
+  qqExpM x1 = [||do x1' <- $$(qqExpM x1)
+                    case x1' :: Either L.Instruction L.Terminator of
+                      Left  x1'' -> fail $ show x1'' ++ " is no Terminator"
+                      Right x1'' -> return x1''||]
 instance QQExp [A.LabeledInstruction] [L.BasicBlock] where
   qqExpM = qqLabeledInstructionListE
 instance QQExp A.NamedInstruction [L.BasicBlock] where

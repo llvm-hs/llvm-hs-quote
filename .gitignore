@@ -11,3 +11,6 @@ cabal.sandbox.config
 *~
 *#*#
 .stack-work
+
+# For IntelliJ IDEA
+/.idea

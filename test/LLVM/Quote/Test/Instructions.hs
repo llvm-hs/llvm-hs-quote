@@ -20,6 +20,9 @@ import qualified LLVM.AST.RMWOperation as RMWOp
 instruction :: Type -> Operand -> Instruction
 instruction ty op = [lli| call void @dummy_fuc($type:ty $opr:op) |]
 
+terminator :: Terminator
+terminator = [llt| ret i32 0 |]
+
 tests :: TestTree
 tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
   testGroup "regular" [
