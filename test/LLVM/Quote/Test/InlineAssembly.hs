@@ -27,7 +27,7 @@ tests = testGroup "InlineAssembly" [
                     G.parameters = ([Parameter (IntegerType 32) (Name "x") []],False),
                     G.basicBlocks = [
                       BasicBlock (Name "entry") [
-                        Name "v0.1" := Call {
+                        UnName 0 := Call {
                           tailCallKind = Nothing,
                           callingConvention = CC.C,
                           returnAttributes = [],
@@ -46,7 +46,7 @@ tests = testGroup "InlineAssembly" [
                           metadata = []
                         }
                       ] (
-                        Do $ Ret (Just (LocalReference (IntegerType 32) (Name "v0.1"))) []
+                        Do $ Ret (Just (LocalReference (IntegerType 32) (UnName 0))) []
                       )
                     ]
                 }

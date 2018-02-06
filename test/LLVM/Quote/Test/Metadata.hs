@@ -25,7 +25,7 @@ tests = testGroup "Metadata" [
             G.name = Name "foo",
             G.basicBlocks = [
               BasicBlock (Name "entry") [
-                 Name "v0.1" := Load {
+                 UnName 0 := Load {
                             volatile = False,
                             address = ConstantOperand (C.GlobalReference (ptr i32) (UnName 0)),
                             maybeAtomicity = Nothing,

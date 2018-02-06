@@ -237,14 +237,6 @@ data Token
   | Tssp
   | Tsspreq
   | Tuwtable
-  -- Loops
-  | Tfor
-  | Tin
-  | Tstep
-  | Tdownto
-  | Tif
-  | Telse
-  | Twhile
   -- Anti-Quotation
   | Tanti_dl String
   | Tanti_tt String
@@ -486,13 +478,6 @@ instance Show Token where
   show Tsection = "section"
   show Tgc = "gc"
   show Ttail = "tail"
-  show Tfor = "for"
-  show Tin = "in"
-  show Tdownto = "downto"
-  show Tstep = "step"
-  show Tif = "if"
-  show Telse = "else"
-  show Twhile = "while"
   show Teof = "EOF"
 
 instance Pretty Token where
@@ -685,14 +670,7 @@ keywords = [("define",            Tdefine,          Nothing),
             ("inteldialect",      Tinteldialect,    Nothing),
             ("section",           Tsection,         Nothing),
             ("gc",                Tgc,              Nothing),
-            ("tail",              Ttail,            Nothing),
-            ("for",               Tfor,             Just [Loops]),
-            ("in",                Tin,              Just [Loops]),
-            ("downto",            Tdownto,          Just [Loops]),
-            ("step",              Tstep,            Just [Loops]),
-            ("if",                Tif,              Just [Loops]),
-            ("else",              Telse,            Just [Loops]),
-            ("while",             Twhile,           Just [Loops])
+            ("tail",              Ttail,            Nothing)
            ]
 
 keywordMap :: Map.Map String (Token, Maybe ExtensionsInt)

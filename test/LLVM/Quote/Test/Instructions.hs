@@ -711,7 +711,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
           G.name = Name "foo",
           G.basicBlocks = [
             BasicBlock (Name "entry") [
-              Name "v0.1" := Load {
+              UnName 0 := Load {
                        volatile = False,
                        address = ConstantOperand (C.GlobalReference (ptr (ptr i8)) (UnName 0)),
                        maybeAtomicity = Nothing,
@@ -720,7 +720,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
                      }
             ] (
               Do $ IndirectBr {
-                operand0' = LocalReference (ptr i8) (Name "v0.1"),
+                operand0' = LocalReference (ptr i8) (UnName 0),
                 possibleDests = [Name "end"],
                 metadata' = []
              }
@@ -774,7 +774,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
               Do $ Ret Nothing []
              ),
             BasicBlock (Name "bar") [
-             Name "v0.1" := LandingPad {
+             UnName 0 := LandingPad {
                type' = StructureType False [
                   PointerType (IntegerType 8) (AddrSpace 0),
                   IntegerType 32

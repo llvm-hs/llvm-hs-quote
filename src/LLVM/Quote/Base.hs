@@ -38,8 +38,6 @@ import Language.Haskell.TH.Quote (QuasiQuoter(..))
 
 import qualified LLVM.Quote.Parser as P
 import qualified LLVM.Quote.AST as A
-import LLVM.Quote.SSA
-import qualified LLVM.AST.IntegerPredicate as LI
 import qualified LLVM.AST as L
 import qualified LLVM.AST.Constant as L
   (Constant(Int, Float, Null, Struct, Array, Vector,
@@ -309,7 +307,7 @@ qqGlobalE (A.Function x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF xG) =
   [||L.Function <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)
                 <*> $$(qqExpM x5) <*> $$(qqExpM x6) <*> $$(qqExpM x7) <*> $$(qqExpM x8)
                 <*> $$(qqExpM x9) <*> $$(qqExpM xA) <*> $$(qqExpM xB) <*> $$(qqExpM xC)
-                <*> $$(qqExpM xD) <*> $$(qqExpM xE) <*> toSSA `fmap` $$(qqExpM xF) <*> $$(qqExpM xG)||]
+                <*> $$(qqExpM xD) <*> $$(qqExpM xE) <*> $$(qqExpM xF) <*> $$(qqExpM xG)||]
 
 qqParameterListE :: Conversion [A.Parameter] [L.Parameter]
 qqParameterListE [] = [||pure []||]
@@ -536,93 +534,6 @@ qqLabeledInstructionE (A.Labeled label instr) =
   [||do label' <- $$(qqExpM label)
         L.BasicBlock _ is t:bbs <- $$(qqExpM instr)
         return $ L.BasicBlock label' is t:bbs||]
-qqLabeledInstructionE (A.ForLoop label iterType iterName direction from to step body) =
-  [||do
-    label' <- $$(qqExpM label)
-    body' <- $$(qqExpM body :: TExpQ (m [L.BasicBlock]))
-    iterName' <- $$(qqExpM iterName :: TExpQ (m L.Name))
-    iterType' <- $$(qqExpM iterType :: TExpQ (m L.Type))
-    from' <- $$(qqExpM from :: TExpQ (m L.Operand))
-    to' <- $$(qqExpM to)
-    step' <- $$(qqExpM step :: TExpQ (m L.Operand))
-
-    let labelString = case label' of
-                        L.Name s -> s
-                        L.UnName n -> fromString ("num" <> show n)
-        cond = L.Name (labelString <> ".cond")
-        labelHead = L.Name (labelString <> ".head")
-        labelEnd = L.Name (labelString <> ".end")
-        labelLast = L.Name (labelString <> ".last")
-
-        iter = L.LocalReference iterType' iterName'
-        newIterInstr = case direction of
-          A.Up -> [ iterName' L.:= L.Add True True iter step' [] ]
-          A.Down -> [ iterName' L.:= L.Sub True True iter step' [] ]
-        preInstrs = case direction of
-            A.Up ->
-              [ cond L.:= L.ICmp LI.SLT iter to' [] ]
-            A.Down ->
-              [ cond L.:= L.ICmp LI.SGT iter to' [] ]
-        branchTo l = case body'' of
-          [] -> error "empty body of for-loop"
-          (L.BasicBlock bodyLabel _ _:_) -> L.Do (L.CondBr (L.LocalReference (L.IntegerType 1) cond) bodyLabel l [])
-        retTerm = L.Do (L.Br (L.Name "nextblock") [])
-        true = L.ConstantOperand $ L.Int 1 1
-        initIter = iterName' L.:= L.Select true from' from' []
-
-        (pre,post) =
-                ([L.BasicBlock label' [initIter] (L.Do (L.Br labelHead [])), L.BasicBlock labelHead preInstrs (branchTo labelEnd)]
-                ,[L.BasicBlock labelEnd [] retTerm])
-        body'' = body' ++ [L.BasicBlock labelLast newIterInstr (L.Do (L.Br labelHead []))]
-
-    return (pre ++ body'' ++ post)
-  ||]
-qqLabeledInstructionE (A.ITE label cond then_body else_body) =
-  [||do
-    label' <- $$(qqExpM label)
-    cond' <- $$(qqExpM cond)
-    then_body' <- $$(qqExpM then_body)
-    else_body' <- $$(qqExpM else_body)
-    let labelString = case label' of
-          L.Name n -> n
-          L.UnName n -> fromString (show n)
-        thenLabel = L.Name (labelString <> ".then")
-        thenLastLabel = L.Name (labelString <> ".then.last")
-        elseLabel = L.Name (labelString <> ".else")
-        elseLastLabel = L.Name (labelString <> ".else.last")
-        endLabel = L.Name (labelString <> ".end")
-        headLabel = L.Name (labelString <> ".head")
-
-        brEnd l = [L.BasicBlock l [] (L.Do (L.Br endLabel []))]
-        pre = [L.BasicBlock label' [] (L.Do (L.Br headLabel []))
-              ,L.BasicBlock headLabel [] (L.Do (L.CondBr cond' thenLabel elseLabel []))]
-        brNext l = [L.BasicBlock l [] (L.Do (L.Br (L.Name "nextblock") []))]
-        end = brNext endLabel
-        then_body'' = brNext thenLabel ++ then_body' ++ brEnd thenLastLabel
-        else_body'' = brNext elseLabel ++ else_body' ++ brEnd elseLastLabel
-    return (pre ++ then_body'' ++ else_body'' ++ end)
-  ||]
-qqLabeledInstructionE (A.While label cond body) =
-  [||do
-    label' <- $$(qqExpM label)
-    cond' <- $$(qqExpM cond)
-    body' <- $$(qqExpM body)
-    let labelString = case label' of
-          L.Name n -> n
-          L.UnName n -> fromString (show n)
-        bodyLabel = L.Name (labelString <> ".body")
-        bodyLastLabel = L.Name (labelString <> ".body.last")
-        endLabel = L.Name (labelString <> ".end")
-        headLabel = L.Name (labelString <> ".head")
-
-        pre = [L.BasicBlock label' [] (L.Do (L.Br headLabel []))
-              ,L.BasicBlock headLabel [] (L.Do (L.CondBr cond' bodyLabel endLabel []))]
-        brNext l = [L.BasicBlock l [] (L.Do (L.Br (L.Name "nextblock") []))]
-        end = brNext endLabel
-        brTop = [L.BasicBlock bodyLastLabel [] (L.Do (L.Br headLabel []))]
-        body'' = brNext bodyLabel ++ body' ++ brTop
-    return (pre ++ body'' ++ end)
-  ||]
 
 qqNamedInstructionE :: Conversion A.NamedInstruction [L.BasicBlock]
 qqNamedInstructionE (x1 A.:= x2) =

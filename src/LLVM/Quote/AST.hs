@@ -64,7 +64,6 @@ import Instances.TH.Lift()
 
 data Extensions
   = Antiquotation
-  | Loops
   deriving (Eq, Ord, Enum, Show)
 type ExtensionsInt = Word32
 
@@ -523,26 +522,6 @@ data LabeledInstruction
   = Labeled {
     label :: Name,
     instruction :: NamedInstruction }
-  | ForLoop {
-    label :: Name,
-    iterType :: Type,
-    iterName :: Name,
-    direction :: Direction,
-    from :: Operand,
-    to :: Operand,
-    step :: Operand,
-    body :: [LabeledInstruction]}
-  | ITE {
-    label :: Name,
-    cond :: Operand,
-    then_body :: [LabeledInstruction],
-    else_body :: [LabeledInstruction]
-    }
-  | While {
-    label :: Name,
-    cond :: Operand,
-    body :: [LabeledInstruction]
-    }
   deriving (Eq, Read, Show, Typeable, Data)
 
 -- | Instances of instructions may be given a name, allowing their results to be referenced as 'Operand's.

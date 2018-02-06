@@ -29,8 +29,7 @@ library
     LLVM.Quote.Parser.Tokens,
     LLVM.Quote.Parser.Monad,
     LLVM.Quote.Parser.Parser
-    LLVM.Quote.Parser,
-    LLVM.Quote.SSA
+    LLVM.Quote.Parser
   other-extensions:    CPP
   ghc-options:     -Wall
   build-depends:
@@ -62,7 +61,6 @@ test-suite test
                       LLVM.Quote.Test.DataLayout
                       LLVM.Quote.Test.InlineAssembly
                       LLVM.Quote.Test.Instructions
-                      LLVM.Quote.Test.Loops
                       LLVM.Quote.Test.Metadata
   build-depends:      base
                     , containers

@@ -21,7 +21,7 @@ import qualified LLVM.AST as L
 import Language.Haskell.TH.Quote
 
 exts :: [A.Extensions]
-exts = [A.Loops]
+exts = []
 
 -- | Quasiquoter for 'LLVM.AST.Module'
 llmod :: QuasiQuoter
