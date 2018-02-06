@@ -11,7 +11,7 @@ example uses both a quasiquote and an antiquote.
 
 ```haskell
 alloc :: Type -> Instruction
-alloc t = [lli|alloc $type:t|]
+alloc t = [lli|alloca $type:t|]
 ```
 
 `LLVM.Quote.LLVM` provides quasiquoters or antiquoters for the following types.
