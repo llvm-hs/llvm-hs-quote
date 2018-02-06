@@ -1,16 +1,19 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Example where
+module Example (
+  example1,
+  example2,
+  example3,
+  example4,
+) where
 
-import LLVM.Prelude
 import LLVM.AST as AST
-import LLVM.AST.Name as AST
 import LLVM.Quote.LLVM as Q
-import Data.String (fromString)
 
-example :: AST.Module
-example = [Q.llmod|
+-- | Module quotation
+example1 :: AST.Module
+example1 = [Q.llmod|
 ; ModuleID = 'simple module'
 
 define i32 @foo(i32 %x) {
@@ -20,3 +23,22 @@ entry:
   ret i32 1001
 }
 |]
+
+-- | Instruction antiquotation
+example2 :: Either AST.Instruction AST.Terminator -> AST.Module
+example2 instructionOrTerminator = [Q.llmod|
+  ; ModuleID = 'simple module'
+  define i32 @myfunc(){
+  entry:
+    $instr:instructionOrTerminator
+    ret i32 0
+  }
+|]
+
+-- | Instruction quotation
+example3 :: AST.Type -> AST.Instruction
+example3 t = [Q.lli|alloca $type:t|]
+
+-- | Definition quotation
+example4 :: AST.Definition
+example4 = [Q.lldef|@0 = global i32 1|]
