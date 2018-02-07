@@ -574,7 +574,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
              tailCallKind = Nothing,
              callingConvention = CC.C,
              returnAttributes = [],
-             function = Right (ConstantOperand (C.GlobalReference (FunctionType void [i32, float, ptr i32, i64, i1, (VectorType 2 i32), (StructureType False [i32, i32])] False) (UnName 0))),
+             function = Right (ConstantOperand (C.GlobalReference (ptr (FunctionType void [i32, float, ptr i32, i64, i1, (VectorType 2 i32), (StructureType False [i32, i32])] False)) (UnName 0))),
              arguments = [ (LocalReference i32 (UnName 0), [])
                          , (LocalReference float (UnName 1), [])
                          , (LocalReference (ptr i32) (UnName 2), [])
@@ -762,7 +762,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
               Do $ Invoke {
                callingConvention' = CC.C,
                returnAttributes' = [],
-               function' = Right (ConstantOperand (C.GlobalReference (FunctionType void [i32, i16] False) (UnName 0))),
+               function' = Right (ConstantOperand (C.GlobalReference (ptr (FunctionType void [i32, i16] False)) (UnName 0))),
                arguments' = [
                 (ConstantOperand (C.Int 32 4), []),
                 (ConstantOperand (C.Int 16 8), [])

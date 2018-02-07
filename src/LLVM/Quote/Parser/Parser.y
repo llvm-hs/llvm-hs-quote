@@ -568,7 +568,7 @@ dialect :
 
 callableOperand :: { [A.Type] -> A.CallableOperand }
 callableOperand :
-    type coperand       { \ts -> Right ($2 (A.FunctionType $1 ts False)) }
+    type coperand       { \ts -> Right ($2 (A.PointerType (A.FunctionType $1 ts False) (A.AddrSpace 0))) }
   | type 'asm' sideeffect alignstack dialect STRING ',' STRING
                        { \ts -> Left (A.InlineAssembly (A.FunctionType $1 ts False) (fromString $6) (fromString $8) $3 $4 $5) }
 
