@@ -713,8 +713,8 @@ instruction_ :
   | 'ret' 'void'                            { A.Ret Nothing }
   | 'ret' typeNoVoid operand                { A.Ret (Just ($3 $2)) }
   | 'br' 'label' name                       { A.Br $3 }
-  | 'br' type operand ',' 'label' name ',' 'label' name
-					    { A.CondBr ($3 $2) $6 $9 }
+  | 'br' tOperand ',' 'label' name ',' 'label' name
+					    { A.CondBr ($2) $5 $8 }
   | 'switch' type operand ',' 'label' name '[' destinations ']'
 					    { A.Switch ($3 $2) $6 (rev $8) }
   | 'indirectbr' tOperand ',' '[' labels ']'

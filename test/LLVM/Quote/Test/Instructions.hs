@@ -23,6 +23,12 @@ instruction ty op = [lli| call void @dummy_fuc($type:ty $opr:op) |]
 terminator :: Terminator
 terminator = [llt| ret i32 0 |]
 
+brWithName :: Name -> Name -> Name -> Instruction
+brWithName condName n1 n2 = [lli|br i1 $id:condName, label $id:n1, label $id:n2|]
+
+brWithOp :: Operand -> Name -> Name -> Instruction
+brWithOp cond n1 n2 = [lli|br $opr:cond, label $id:n1, label $id:n2|]
+
 tests :: TestTree
 tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
   testGroup "regular" [
