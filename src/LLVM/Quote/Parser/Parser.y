@@ -514,7 +514,7 @@ clauses :
 
 phiItem :: { A.Type -> (A.Operand, A.Name) }
 phiItem :
-    '[' operand ',' name ']'     { \t -> ($2 t, $4) }
+    '[' coperand ',' name ']'    { \t -> ($2 t, $4) }
 
 phiList :: { A.Type -> RevList (A.Operand, A.Name) }
 phiList :
@@ -711,7 +711,7 @@ instruction_ :
   | 'landingpad' type cleanup clauses
                                             { A.LandingPad $2 $3 (rev $4) }
   | 'ret' 'void'                            { A.Ret Nothing }
-  | 'ret' typeNoVoid operand                { A.Ret (Just ($3 $2)) }
+  | 'ret' typeNoVoid coperand               { A.Ret (Just ($3 $2)) }
   | 'br' 'label' name                       { A.Br $3 }
   | 'br' tOperand ',' 'label' name ',' 'label' name
 					    { A.CondBr ($2) $5 $8 }

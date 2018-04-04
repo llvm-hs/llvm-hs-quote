@@ -29,6 +29,20 @@ brWithName condName n1 n2 = [lli|br i1 $id:condName, label $id:n1, label $id:n2|
 brWithOp :: Operand -> Name -> Name -> Instruction
 brWithOp cond n1 n2 = [lli|br $opr:cond, label $id:n1, label $id:n2|]
 
+phi1 :: Type -> Name -> Name -> Name -> Name -> Instruction
+phi1 ty vName1 vName2 label1 label2 = [lli|phi $type:ty [$id:vName1, $id:label1], [$id:vName2, $id:label2]|]
+
+phi2 :: Type -> Operand -> Operand -> Name -> Name -> Instruction
+phi2 ty op1 op2 label1 label2 = [lli|phi $type:ty [$opr:op1, $id:label1], [$opr:op2, $id:label2]|]
+
+
+retWithName :: Type -> Name -> Terminator
+retWithName ty name = [llt|ret $type:ty $id:name|]
+
+retWithOp :: Type -> Operand -> Terminator
+retWithOp ty op = [llt|ret $type:ty $opr:op|]
+
+
 tests :: TestTree
 tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
   testGroup "regular" [
