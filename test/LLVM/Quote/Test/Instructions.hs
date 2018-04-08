@@ -43,6 +43,10 @@ retWithName ty name = [llt|ret $type:ty $id:name|]
 retWithOp :: Type -> Operand -> Terminator
 retWithOp ty op = [llt|ret $type:ty $opr:op|]
 
+-- `declare` with function attribute
+def1 :: Definition
+def1 = [lldef|declare void @llvm.gcroot(i8**, i8*) nounwind|]
+
 tests :: TestTree
 tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
   testGroup "regular" [
