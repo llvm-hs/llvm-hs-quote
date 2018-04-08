@@ -307,16 +307,17 @@ fConstant :
                           { \_ -> A.BlockAddress $3 $5 }
   | 'undef'               { A.Undef }
   | globalName            { \t -> A.GlobalReference t $1 }
-  
+
 {- Constants that don't require a type -}
 cConstant :: { A.Constant }
 cConstant :
     ANTI_CONST            { A.AntiConstant (fromString $1) }
   | CSTRING               { A.Array (A.IntegerType 8) (map (A.Int 8 . fromIntegral . ord) $1) }
-    
+  | constantExpression    { $1 }
+
 constant :: { A.Type -> A.Constant }
 constant :
-    fConstant             { $1 }  
+    fConstant             { $1 }
   | cConstant             { \_ -> $1 }
 
 tConstant :: { A.Constant }
@@ -328,7 +329,57 @@ mConstant :: { A.Type -> Maybe A.Constant }
 mConstant :
     {- empty -}            { \_ -> Nothing }
   | constant               { Just . $1 }
-  
+
+constantIndices :: { RevList A.Constant }
+constantIndices :
+    {- empty -}                     { RNil }
+  | constantIndices ',' tConstant   { RCons $3 $1 }
+
+
+{- Constant expressions -}
+{- from https://llvm.org/docs/LangRef.html#constant-expressions -}
+constantExpression :
+    'add' nsw nuw '(' tConstant ',' tConstant ')'                  { A.Add' $2 $3 $5 $7 }
+  | 'fadd' '(' tConstant ',' tConstant ')'                         { A.FAdd' $3 $5 }
+  | 'sub' nsw nuw '(' tConstant ',' tConstant ')'                  { A.Sub' $2 $3 $5 $7 }
+  | 'fsub' '(' tConstant ',' tConstant ')'                         { A.FSub' $3 $5 }
+  | 'mul' nsw nuw '(' tConstant ',' tConstant ')'                  { A.Mul' $2 $3 $5 $7 }
+  | 'fmul' '(' tConstant ',' tConstant ')'                         { A.FMul' $3 $5 }
+  | 'udiv' exact '(' tConstant ',' tConstant ')'                   { A.UDiv' $2 $4 $6 }
+  | 'sdiv' exact '(' tConstant ',' tConstant ')'                   { A.SDiv' $2 $4 $6 }
+  | 'fdiv' '(' tConstant ',' tConstant ')'                         { A.FDiv' $3 $5 }
+  | 'urem' '(' tConstant ',' tConstant ')'                         { A.URem' $3 $5 }
+  | 'srem' '(' tConstant ',' tConstant ')'                         { A.SRem' $3 $5 }
+  | 'frem' '(' tConstant ',' tConstant ')'                         { A.FRem' $3 $5 }
+  | 'shl' nsw nuw '(' tConstant ',' tConstant ')'                  { A.Shl' $2 $3 $5 $7 }
+  | 'lshr' exact '(' tConstant ',' tConstant ')'                   { A.LShr' $2 $4 $6 }
+  | 'ashr' exact '(' tConstant ',' tConstant ')'                   { A.AShr' $2 $4 $6 }
+  | 'and' '(' tConstant ',' tConstant ')'                          { A.And' $3 $5 }
+  | 'or' '(' tConstant ',' tConstant ')'                           { A.Or' $3 $5 }
+  | 'xor' '(' tConstant ',' tConstant ')'                          { A.Xor' $3 $5 }
+  | 'getelementptr' inBounds '(' tConstant constantIndices ')'     { A.GetElementPtr' $2 $4 (rev $5) }
+  | 'trunc' '(' tConstant 'to' type ')'                            { A.Trunc' $3 $5 }
+  | 'zext' '(' tConstant 'to' type ')'                             { A.ZExt' $3 $5 }
+  | 'sext' '(' tConstant 'to' type ')'                             { A.SExt' $3 $5 }
+  | 'fptoui' '(' tConstant 'to' type ')'                           { A.FPToUI' $3 $5 }
+  | 'fptosi' '(' tConstant 'to' type ')'                           { A.FPToSI' $3 $5 }
+  | 'uitofp' '(' tConstant 'to' type ')'                           { A.UIToFP' $3 $5 }
+  | 'sitofp' '(' tConstant 'to' type ')'                           { A.SIToFP' $3 $5 }
+  | 'fptrunc' '(' tConstant 'to' type ')'                          { A.FPTrunc' $3 $5 }
+  | 'fpext' '(' tConstant 'to' type ')'                            { A.FPExt' $3 $5 }
+  | 'ptrtoint' '(' tConstant 'to' type ')'                         { A.PtrToInt' $3 $5 }
+  | 'inttoptr' '(' tConstant 'to' type ')'                         { A.IntToPtr' $3 $5 }
+  | 'bitcast' '(' tConstant 'to' type ')'                          { A.BitCast' $3 $5 }
+  | 'addrspacecast' '(' tConstant 'to' type ')'                    { A.AddrSpaceCast' $3 $5 }
+  | 'icmp'  intP '(' tConstant ',' tConstant ')'                   { A.ICmp' $2 $4 $6 }
+  | 'fcmp'  fpP '(' tConstant ',' tConstant ')'                    { A.FCmp' $2 $4 $6 }
+  | 'select' '(' tConstant ',' tConstant ',' tConstant ')'         { A.Select' $3 $5 $7 }
+  | 'extractelement' '(' tConstant ',' tConstant ')'               { A.ExtractElement' $3 $5 }
+  | 'insertelement' '(' tConstant ',' tConstant ',' tConstant ')'  { A.InsertElement' $3 $5 $7 }
+  | 'shufflevector' '(' tConstant ',' tConstant ',' tConstant ')'  { A.ShuffleVector' $3 $5 $7 }
+  | 'extractvalue' '(' tConstant ',' idxs ')'                      { A.ExtractValue' $3 (rev $5) }
+  | 'insertvalue' '(' tConstant ',' tConstant ',' idxs ')'         { A.InsertValue' $3 $5 (rev $7) }
+
 constantList :: { RevList A.Constant }
 constantList :
     tConstant                    { RCons $1 RNil }
@@ -728,7 +779,6 @@ instruction_ :
 instruction :: { A.Instruction }
 instruction :
     instruction_ instructionMetadata   { $1 (rev $2) }
-  | tOperand                           { A.OperandInstruction $1 }
 
 name :: { A.Name }
 name :

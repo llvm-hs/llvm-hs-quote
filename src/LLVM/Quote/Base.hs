@@ -42,6 +42,7 @@ import qualified LLVM.AST as L
 import qualified LLVM.AST.Constant as L
   (Constant(Int, Float, Null, Struct, Array, Vector,
             Undef, BlockAddress, GlobalReference))
+import qualified LLVM.AST.Constant as LConstant
 import qualified LLVM.AST.Float as L
 import qualified LLVM.AST.InlineAssembly as L
 import qualified LLVM.AST.DataLayout as L
@@ -615,6 +616,86 @@ qqConstantE (A.GlobalReference x1 x2) =
   [||L.GlobalReference <$> $$(qqExpM x1)<*> $$(qqExpM x2)||]
 qqConstantE (A.AntiConstant s) =
   unsafeTExpCoerce [|$(antiVarE s) >>= (return . toConstant)|]
+qqConstantE (A.Add' x1 x2 x3 x4) =
+  [||LConstant.Add <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)||]
+qqConstantE (A.FAdd' x1 x2) =
+  [||LConstant.FAdd <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.Sub' x1 x2 x3 x4) =
+  [||LConstant.Sub <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)||]
+qqConstantE (A.FSub' x1 x2) =
+ [||LConstant.FSub <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.Mul' x1 x2 x3 x4) =
+  [||LConstant.Mul <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)||]
+qqConstantE (A.FMul' x1 x2) =
+  [||LConstant.FMul <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.UDiv' x1 x2 x3) =
+  [||LConstant.UDiv <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.SDiv' x1 x2 x3) =
+  [||LConstant.SDiv <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.FDiv' x1 x2) =
+ [||LConstant.FDiv <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.URem' x1 x2) =
+  [||LConstant.URem <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.SRem' x1 x2) =
+  [||LConstant.SRem <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.FRem' x1 x2) =
+ [||LConstant.FRem <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.Shl' x1 x2 x3 x4) =
+  [||LConstant.Shl <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3) <*> $$(qqExpM x4)||]
+qqConstantE (A.LShr' x1 x2 x3) =
+  [||LConstant.LShr <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.AShr' x1 x2 x3) =
+  [||LConstant.AShr <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.And' x1 x2) =
+  [||LConstant.And <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.Or' x1 x2) =
+  [||LConstant.Or <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.Xor' x1 x2) =
+  [||LConstant.Xor <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.GetElementPtr' x1 x2 x3) =
+  [||LConstant.GetElementPtr <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.Trunc' x1 x2) =
+  [||LConstant.Trunc <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.ZExt' x1 x2) =
+  [||LConstant.ZExt <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.SExt' x1 x2) =
+  [||LConstant.SExt <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.FPToUI' x1 x2) =
+  [||LConstant.FPToUI <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.FPToSI' x1 x2) =
+  [||LConstant.FPToSI <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.UIToFP' x1 x2) =
+  [||LConstant.UIToFP <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.SIToFP' x1 x2) =
+  [||LConstant.SIToFP <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.FPTrunc' x1 x2) =
+  [||LConstant.FPTrunc <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.FPExt' x1 x2) =
+  [||LConstant.FPExt <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.PtrToInt' x1 x2) =
+  [||LConstant.PtrToInt <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.IntToPtr' x1 x2) =
+  [||LConstant.IntToPtr <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.BitCast' x1 x2) =
+  [||LConstant.BitCast <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.AddrSpaceCast' x1 x2) =
+  [||LConstant.AddrSpaceCast <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.ICmp' x1 x2 x3) =
+  [||LConstant.ICmp <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.FCmp' x1 x2 x3) =
+  [||LConstant.FCmp <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.Select' x1 x2 x3) =
+  [||LConstant.Select <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.ExtractElement' x1 x2) =
+  [||LConstant.ExtractElement <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.InsertElement' x1 x2 x3) =
+  [||LConstant.InsertElement <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.ShuffleVector' x1 x2 x3) =
+  [||LConstant.ShuffleVector <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
+qqConstantE (A.ExtractValue' x1 x2) =
+  [||LConstant.ExtractValue <$> $$(qqExpM x1) <*> $$(qqExpM x2)||]
+qqConstantE (A.InsertValue' x1 x2 x3) =
+  [||LConstant.InsertValue <$> $$(qqExpM x1) <*> $$(qqExpM x2) <*> $$(qqExpM x3)||]
 
 qqNameE :: Conversion A.Name L.Name
 qqNameE (A.Name x1) =

@@ -581,6 +581,185 @@ data Constant
     | BlockAddress { blockAddressFunction :: Name, blockAddressBlock :: Name }
     | GlobalReference Type Name
     | AntiConstant ShortByteString
+    | Add' {
+        nsw' :: Bool,
+        nuw' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | FAdd' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | Sub' {
+        nsw' :: Bool,
+        nuw' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | FSub' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | Mul' {
+        nsw' :: Bool,
+        nuw' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | FMul' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | UDiv' {
+        exact' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | SDiv' {
+        exact' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | FDiv' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | URem' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | SRem' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | FRem' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | Shl' {
+        nsw' :: Bool,
+        nuw' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | LShr' {
+        exact' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | AShr' {
+        exact' :: Bool,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | And' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | Or' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | Xor' {
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | GetElementPtr' {
+        inBounds' :: Bool,
+        address' :: Constant,
+        indices'' :: [Constant]
+      }
+    | Trunc' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | ZExt' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | SExt' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | FPToUI' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | FPToSI' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | UIToFP' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | SIToFP' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | FPTrunc' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | FPExt' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | PtrToInt' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | IntToPtr' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | BitCast' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | AddrSpaceCast' {
+        operand0'' :: Constant,
+        type'' :: Type
+      }
+    | ICmp' {
+        iPredicate' :: AI.IntegerPredicate,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | FCmp' {
+        fpPredicate' :: AF.FloatingPointPredicate,
+        operand0'' :: Constant,
+        operand1'' :: Constant
+      }
+    | Select' {
+        condition'' :: Constant,
+        trueValue' :: Constant,
+        falseValue' :: Constant
+      }
+    | ExtractElement' {
+        vector' :: Constant,
+        index' :: Constant
+      }
+    | InsertElement' {
+        vector' :: Constant,
+        element' :: Constant,
+        index' :: Constant
+      }
+    | ShuffleVector' {
+        operand0'' :: Constant,
+        operand1'' :: Constant,
+        mask' :: Constant
+      }
+    | ExtractValue' {
+        aggregate' :: Constant,
+        indices''' :: [Word32]
+      }
+    | InsertValue' {
+        aggregate' :: Constant,
+        element' :: Constant,
+        indices''' :: [Word32]
+      }
     deriving (Eq, Ord, Read, Show, Typeable, Data)
 
 {- |
