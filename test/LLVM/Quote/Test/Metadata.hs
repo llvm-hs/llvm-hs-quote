@@ -51,7 +51,7 @@ tests = testGroup "Metadata" [
 
             define i32 @foo() {
             entry:
-              %0 = load i32* @0
+              %0 = load i32, i32* @0
               ret i32 0, !my-metadatum !{!"super hyper"}
             }|]
     s @?= ast,

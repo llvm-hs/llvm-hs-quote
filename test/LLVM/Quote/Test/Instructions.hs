@@ -245,7 +245,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
              alignment = 0,
              metadata = []
            },
-           [lli|load i32* %2|]),
+           [lli|load i32, i32* %2|]),
           ("volatile",
            Load {
              volatile = True,
@@ -254,7 +254,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
              alignment = 0,
              metadata = []
            },
-           [lli|load volatile i32* %2|]),
+           [lli|load volatile i32, i32* %2|]),
           ("acquire",
            Load {
              volatile = False,
@@ -263,7 +263,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
              alignment = 1,
              metadata = []
            },
-           [lli|load atomic i32* %2 acquire, align 1|]),
+           [lli|load atomic i32, i32* %2 acquire, align 1|]),
           ("singlethread",
            Load {
              volatile = False,
@@ -272,7 +272,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
              alignment = 1,
              metadata = []
            },
-           [lli|load atomic i32* %2 singlethread monotonic, align 1|]),
+           [lli|load atomic i32, i32* %2 singlethread monotonic, align 1|]),
           ("GEP",
            GetElementPtr {
              inBounds = False,
@@ -280,7 +280,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
              indices = [ a i32 0 ],
              metadata = []
            },
-           [lli|getelementptr i32* %2, i32 %0|]),
+           [lli|getelementptr i32, i32* %2, i32 %0|]),
           ("inBounds",
            GetElementPtr {
              inBounds = True,
@@ -288,7 +288,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
              indices = [ a i32 0 ],
              metadata = []
            },
-           [lli|getelementptr inbounds i32* %2, i32 %0|]),
+           [lli|getelementptr inbounds i32, i32* %2, i32 %0|]),
           ("cmpxchg",
            CmpXchg {
              volatile = False,
@@ -2197,7 +2197,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
 
        define void @foo() {
        entry:
-         %0 = load i8** @0
+         %0 = load i8*, i8** @0
          indirectbr i8* %0, [label %end]
 
        end:

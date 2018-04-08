@@ -715,14 +715,14 @@ instruction_ :
   | 'or' binOperands            { A.Or (fst $2) (snd $2) }
   | 'xor' binOperands           { A.Xor (fst $2) (snd $2) }
   | 'alloca' type mOperand alignment        { A.Alloca $2 $3 $4 }
-  | 'load' volatile tOperand alignment      { A.Load $2 $3 Nothing $4 }
-  | 'load' 'atomic' volatile tOperand atomicity alignment      { A.Load $3 $4 (Just $5) $6 }
+  | 'load' volatile type ',' tOperand alignment      { A.Load $2 $5 Nothing $6 }
+  | 'load' 'atomic' volatile type ',' tOperand atomicity alignment      { A.Load $3 $6 (Just $7) $8 }
   | 'store' volatile tOperand ',' tOperand alignment
                                             { A.Store $2 $5 $3 Nothing $6 }
   | 'store' 'atomic' volatile tOperand ',' tOperand atomicity alignment
                                             { A.Store $3 $6 $4 (Just $7) $8 }
-  | 'getelementptr' inBounds tOperand indices
-                                            { A.GetElementPtr $2 $3 (rev $4) }
+  | 'getelementptr' inBounds type ',' tOperand indices
+                                            { A.GetElementPtr $2 $5 (rev $6) }
   | 'fence' atomicity                       { A.Fence $2 }
   | 'cmpxchg' volatile tOperand ',' tOperand ',' tOperand atomicity
                                             { A.CmpXchg $2 $3 $5 $7 $8 A.Unordered }
