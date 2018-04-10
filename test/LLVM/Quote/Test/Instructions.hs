@@ -1489,7 +1489,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
               functionAttributes = [],
               metadata = []
             },
-            [lli|call void @myfunc(i8* getelementptr ([4 x i8]* @myglobal_str, i32 0, i32 0))|]),
+            [lli|call void @myfunc(i8* getelementptr ([4 x i8], [4 x i8]* @myglobal_str, i32 0, i32 0))|]),
           ("call with constant getelementptr inbounds",
             Call {
               tailCallKind = Nothing,
@@ -1521,7 +1521,7 @@ tests = let a t = LocalReference t . UnName in testGroup "Instructions" [
               functionAttributes = [],
               metadata = []
             },
-            [lli|call void @myfunc(i8* getelementptr inbounds ([4 x i8]* @myglobal_str, i32 0, i32 0))|]),
+            [lli|call void @myfunc(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @myglobal_str, i32 0, i32 0))|]),
           ("call with constant trunc",
             Call {
               tailCallKind = Nothing,

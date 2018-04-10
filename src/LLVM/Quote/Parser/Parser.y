@@ -357,7 +357,8 @@ constantExpression :
   | 'and' '(' tConstant ',' tConstant ')'                          { A.And' $3 $5 }
   | 'or' '(' tConstant ',' tConstant ')'                           { A.Or' $3 $5 }
   | 'xor' '(' tConstant ',' tConstant ')'                          { A.Xor' $3 $5 }
-  | 'getelementptr' inBounds '(' tConstant constantIndices ')'     { A.GetElementPtr' $2 $4 (rev $5) }
+  | 'getelementptr' inBounds '(' type ','  tConstant constantIndices ')'
+                                                                   { A.GetElementPtr' $2 $6 (rev $7) }
   | 'trunc' '(' tConstant 'to' type ')'                            { A.Trunc' $3 $5 }
   | 'zext' '(' tConstant 'to' type ')'                             { A.ZExt' $3 $5 }
   | 'sext' '(' tConstant 'to' type ')'                             { A.SExt' $3 $5 }
