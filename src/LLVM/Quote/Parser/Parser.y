@@ -397,7 +397,7 @@ operand :
     fConstant           { A.ConstantOperand . $1 }
   | name                { \t -> A.LocalReference t $1 }
   | cOperand            { \_ -> $1 }
-  | metadata            { \A.MetadataType -> A.MetadataOperand $1 }
+  | 'metadata' metadata { \A.MetadataType -> A.MetadataOperand $2 }
 
 mOperand :: { Maybe A.Operand }
 mOperand :
