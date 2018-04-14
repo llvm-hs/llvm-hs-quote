@@ -628,7 +628,6 @@ coperand :: { A.Type -> A.Operand }
 coperand :
     fConstant           { A.ConstantOperand . $1 }
   | name                { \t -> A.LocalReference t $1 }
-  | ANTI_OPR            { \t -> A.AntiOperand (fromString $1) }
   | cOperand            { \_ -> $1 }
 
 tail :: { Maybe A.TailCallKind }
